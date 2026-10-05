@@ -25,12 +25,17 @@ def configure_logging(level: LogLevel = "INFO", *, json: bool = True) -> None:
             renderer,
         ],
         wrapper_class=structlog.make_filtering_bound_logger(numeric_level),
-        logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
+        # Resolve sys.stderr per logger so redirected or replaced streams are honoured.
+        logger_factory=lambda *_: structlog.PrintLogger(sys.stderr),
         cache_logger_on_first_use=False,
     )
 
 
 def get_logger(name: str) -> structlog.typing.FilteringBoundLogger:
-    """Return a bound logger tagged with ``logger=name``."""
-    logger: structlog.typing.FilteringBoundLogger = structlog.get_logger(name)
-    return logger.bind(logger=name)
+    """Return a lazy logger tagged with ``logger_name=name``.
+
+    The logger stays lazy, so module-level loggers pick up the configuration
+    applied later by :func:`configure_logging`.
+    """
+    logger: structlog.typing.FilteringBoundLogger = structlog.get_logger(logger_name=name)
+    return logger

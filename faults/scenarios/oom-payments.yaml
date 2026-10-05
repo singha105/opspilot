@@ -1,0 +1,23 @@
+id: oom-payments
+title: payments-api OOMKilled after memory ballast increase
+split: dev
+category: OOM_KILLED
+namespace: shop
+target: {kind: Deployment, name: payments-api, container: app}
+inject:
+  - type: set_env
+    env: {MEMORY_BALLAST_MB: "300"}
+expected_symptom:
+  pod_reason_any_of: [OOMKilled, CrashLoopBackOff]
+  timeout_s: 150
+alert:
+  name: KubePodCrashLooping
+  severity: critical
+  summary: "payments-api pods are restarting repeatedly in namespace shop"
+  labels: {namespace: shop, deployment: payments-api}
+expected:
+  root_cause_category: OOM_KILLED
+  component: payments-api
+  runbook_ids: []
+  acceptable_actions: [patch_container_resources, rollback_deployment]
+reset: {type: reapply_base}

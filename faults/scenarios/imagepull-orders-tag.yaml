@@ -1,0 +1,23 @@
+id: imagepull-orders-tag
+title: orders-api rollout references an image tag that does not exist
+split: dev
+category: IMAGE_PULL_ERROR
+namespace: shop
+target: {kind: Deployment, name: orders-api, container: app}
+inject:
+  - type: set_image
+    image: opspilot-demo-svc:does-not-exist
+expected_symptom:
+  pod_reason_any_of: [ErrImagePull, ImagePullBackOff]
+  timeout_s: 120
+alert:
+  name: KubeDeploymentReplicasMismatch
+  severity: critical
+  summary: "orders-api has 0 of 1 replicas available in namespace shop"
+  labels: {namespace: shop, deployment: orders-api}
+expected:
+  root_cause_category: IMAGE_PULL_ERROR
+  component: orders-api
+  runbook_ids: []
+  acceptable_actions: [rollback_deployment, set_container_image]
+reset: {type: reapply_base}

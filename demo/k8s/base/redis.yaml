@@ -9,6 +9,11 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 3
+  # Single replica: replace the pod in place (no surge) so a bad rollout is visible
+  # immediately and the namespace never needs memory for a second copy.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 0, maxUnavailable: 1}
   selector:
     matchLabels:
       app.kubernetes.io/name: redis

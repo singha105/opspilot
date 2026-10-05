@@ -35,7 +35,7 @@ def test_logging_emits_json(capsys: pytest.CaptureFixture[str]) -> None:
     record = json.loads(line)
     assert record["event"] == "hello"
     assert record["answer"] == 42
-    assert record["logger"] == "test"
+    assert record["logger_name"] == "test"
     assert record["level"] == "info"
 
 

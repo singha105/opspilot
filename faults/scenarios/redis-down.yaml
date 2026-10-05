@@ -1,0 +1,23 @@
+id: redis-down
+title: redis scaled to zero, so orders-api and inventory-api lose their cache
+split: dev
+category: DEPENDENCY_UNAVAILABLE
+namespace: shop
+target: {kind: Deployment, name: redis, container: redis}
+inject:
+  - type: scale
+    replicas: 0
+expected_symptom:
+  not_ready_deployments: [orders-api, inventory-api]
+  timeout_s: 120
+alert:
+  name: KubeDeploymentReplicasMismatch
+  severity: warning
+  summary: "orders-api and inventory-api have 0 of 1 replicas ready in namespace shop"
+  labels: {namespace: shop, deployment: orders-api}
+expected:
+  root_cause_category: DEPENDENCY_UNAVAILABLE
+  component: redis
+  runbook_ids: []
+  acceptable_actions: [scale_deployment]
+reset: {type: reapply_base}

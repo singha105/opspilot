@@ -1,0 +1,24 @@
+id: readiness-payments
+title: payments-api readiness probe points at a path that does not exist
+split: dev
+category: READINESS_PROBE_MISCONFIG
+namespace: shop
+target: {kind: Deployment, name: payments-api, container: app}
+inject:
+  - type: set_probe
+    probe: readiness
+    path: /ready-v2
+expected_symptom:
+  not_ready_deployments: [payments-api, orders-api]
+  timeout_s: 120
+alert:
+  name: KubeDeploymentReplicasMismatch
+  severity: critical
+  summary: "payments-api has 0 of 1 replicas ready and orders-api is failing calls to payments"
+  labels: {namespace: shop, deployment: payments-api}
+expected:
+  root_cause_category: READINESS_PROBE_MISCONFIG
+  component: payments-api
+  runbook_ids: []
+  acceptable_actions: [patch_probe, rollback_deployment]
+reset: {type: reapply_base}

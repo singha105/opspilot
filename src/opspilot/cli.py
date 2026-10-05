@@ -6,6 +6,7 @@ import typer
 
 from opspilot import __version__
 from opspilot.config import get_settings
+from opspilot.faults.cli import app as faults_app
 from opspilot.logging import configure_logging
 
 app = typer.Typer(
@@ -13,6 +14,7 @@ app = typer.Typer(
     help="OpsPilot: AI incident-response agent for Kubernetes.",
     no_args_is_help=True,
 )
+app.add_typer(faults_app, name="faults")
 
 
 def _version_callback(value: bool) -> None:

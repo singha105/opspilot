@@ -1,0 +1,23 @@
+id: missing-env-inventory
+title: inventory-api crashes because REDIS_URL was removed from its environment
+split: dev
+category: CONFIG_MISSING_ENV
+namespace: shop
+target: {kind: Deployment, name: inventory-api, container: app}
+inject:
+  - type: unset_env
+    names: [REDIS_URL]
+expected_symptom:
+  pod_reason_any_of: [CrashLoopBackOff, Error]
+  timeout_s: 120
+alert:
+  name: KubePodCrashLooping
+  severity: critical
+  summary: "inventory-api pods are restarting repeatedly in namespace shop"
+  labels: {namespace: shop, deployment: inventory-api}
+expected:
+  root_cause_category: CONFIG_MISSING_ENV
+  component: inventory-api
+  runbook_ids: []
+  acceptable_actions: [restore_env_var, rollback_deployment]
+reset: {type: reapply_base}
