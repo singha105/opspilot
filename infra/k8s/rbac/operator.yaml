@@ -1,0 +1,31 @@
+# Narrow write identity used only by the gated opspilot-actions MCP server.
+# get/patch on Deployments (and their scale subresource) in namespace shop. Nothing else.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opspilot-operator
+  namespace: opspilot-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: opspilot-operator
+  namespace: shop
+rules:
+  - apiGroups: [apps]
+    resources: [deployments, deployments/scale]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: opspilot-operator
+  namespace: shop
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: opspilot-operator
+subjects:
+  - kind: ServiceAccount
+    name: opspilot-operator
+    namespace: opspilot-system

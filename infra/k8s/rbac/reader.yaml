@@ -1,0 +1,52 @@
+# Read-only identity for the OpsPilot agent.
+# get/list/watch only. No Secrets, no pods/exec, no write verbs.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opspilot-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opspilot-reader
+  namespace: opspilot-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: opspilot-reader
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - events
+      - services
+      - endpoints
+      - configmaps
+      - nodes
+      - persistentvolumeclaims
+      - namespaces
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [deployments, replicasets]
+    verbs: [get, list, watch]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+  - apiGroups: [events.k8s.io]
+    resources: [events]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: opspilot-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: opspilot-reader
+subjects:
+  - kind: ServiceAccount
+    name: opspilot-reader
+    namespace: opspilot-system
