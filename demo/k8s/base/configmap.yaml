@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shopfront-settings
+data:
+  LOG_LEVEL: INFO
+  REDIS_URL: redis://redis:6379
+  PAYMENTS_URL: http://payments-api:8080

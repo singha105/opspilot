@@ -62,6 +62,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "demo/app/tests"]
+pythonpath = ["demo/app"]
 addopts = "-ra --strict-markers --import-mode=importlib"
 markers = [
     "integration: needs the k3d cluster, Docker or other local services",
