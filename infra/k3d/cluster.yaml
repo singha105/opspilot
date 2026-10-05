@@ -1,0 +1,22 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: opspilot
+servers: 1
+agents: 0
+options:
+  k3d:
+    wait: true
+    timeout: 120s
+  k3s:
+    extraArgs:
+      # Keep the single node lean: no ingress, no load balancer, no metrics-server.
+      - arg: --disable=traefik
+        nodeFilters: [server:*]
+      - arg: --disable=servicelb
+        nodeFilters: [server:*]
+      - arg: --disable=metrics-server
+        nodeFilters: [server:*]
+  kubeconfig:
+    updateDefaultKubeconfig: true
+    switchCurrentContext: false

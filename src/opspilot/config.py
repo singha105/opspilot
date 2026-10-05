@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     llm_model: str = "qwen3:4b"
     ollama_base_url: str = "http://localhost:11434"
 
-    weaviate_url: str = "http://localhost:8080"
+    weaviate_url: str = "http://localhost:8090"
 
     admin_context: str = Field(
         default="k3d-opspilot",

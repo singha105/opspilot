@@ -1,0 +1,43 @@
+name: opspilot
+
+services:
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.39.8
+    command: ["--host", "0.0.0.0", "--port", "8080", "--scheme", "http"]
+    ports:
+      - "8090:8080"
+      - "50051:50051"
+    environment:
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate
+      # We bring our own vectors (fastembed), so no vectorizer modules are loaded.
+      DEFAULT_VECTORIZER_MODULE: none
+      ENABLE_MODULES: ""
+      API_BASED_MODULES_DISABLED: "true"
+      CLUSTER_HOSTNAME: node1
+      QUERY_DEFAULTS_LIMIT: "25"
+      LIMIT_RESOURCES: "true"
+      GOMEMLIMIT: 600MiB
+      DISABLE_TELEMETRY: "true"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    mem_limit: 700m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/v1/.well-known/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 5s
+    restart: unless-stopped
+
+  phoenix:
+    image: arizephoenix/phoenix:version-20.19.0
+    profiles: ["tracing"]
+    ports:
+      - "6006:6006"
+      - "4317:4317"
+    mem_limit: 512m
+    restart: unless-stopped
+
+volumes:
+  weaviate_data:
