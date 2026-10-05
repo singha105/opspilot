@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# macOS
+.DS_Store
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+.secrets/
+*.kubeconfig
+kubeconfig*
+
+# Local data, run logs, model and vector-DB files
+data/
+runs/
+*.sqlite
+*.sqlite3
+*.db
+chroma/
+.chroma/
+weaviate_data/
+*.onnx
+*.gguf
+*.bin
+
+# Editors
+.idea/
+.vscode/
