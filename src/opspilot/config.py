@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
@@ -27,6 +27,21 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
 
     weaviate_url: str = "http://localhost:8090"
+    weaviate_grpc_port: int = 50052
+
+    knowledge_dir: Path = Path("knowledge")
+    data_dir: Path = Path("data")
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    reranker_model: str = "ms-marco-MiniLM-L-12-v2"
+    default_store: Literal["weaviate", "chroma", "pinecone"] = "weaviate"
+
+    # Optional Pinecone (free Starter tier). Read from PINECONE_API_KEY as well.
+    pinecone_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OPSPILOT_PINECONE_API_KEY", "PINECONE_API_KEY"),
+    )
+    pinecone_cloud: str = "aws"
+    pinecone_region: str = "us-east-1"
 
     admin_context: str = Field(
         default="k3d-opspilot",
@@ -36,6 +51,21 @@ class Settings(BaseSettings):
     secrets_dir: Path = Path(".secrets")
     scenarios_dir: Path = Path("faults/scenarios")
     demo_base_dir: Path = Path("demo/k8s/base")
+
+    @property
+    def chroma_dir(self) -> Path:
+        """Persistent Chroma data and its BM25 indexes."""
+        return self.data_dir / "chroma"
+
+    @property
+    def model_dir(self) -> Path:
+        """Downloaded embedding and reranker models."""
+        return self.data_dir / "models"
+
+    @property
+    def embedding_cache(self) -> Path:
+        """SQLite cache of passage embeddings keyed by text hash."""
+        return self.data_dir / "cache" / "embeddings.sqlite"
 
     @property
     def reader_kubeconfig(self) -> Path:

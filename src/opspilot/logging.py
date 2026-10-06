@@ -12,6 +12,9 @@ def configure_logging(level: LogLevel = "INFO", *, json: bool = True) -> None:
     """Configure structlog and the stdlib root logger to write to stderr."""
     numeric_level = logging.getLevelName(level)
     logging.basicConfig(format="%(message)s", stream=sys.stderr, level=numeric_level, force=True)
+    # HTTP client libraries log every request at INFO; keep them quiet.
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(max(numeric_level, logging.WARNING))
     renderer: structlog.typing.Processor = (
         structlog.processors.JSONRenderer() if json else structlog.dev.ConsoleRenderer()
     )

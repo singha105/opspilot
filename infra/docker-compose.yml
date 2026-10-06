@@ -6,7 +6,7 @@ services:
     command: ["--host", "0.0.0.0", "--port", "8080", "--scheme", "http"]
     ports:
       - "8090:8080"
-      - "50051:50051"
+      - "50052:50051"
     environment:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
       PERSISTENCE_DATA_PATH: /var/lib/weaviate

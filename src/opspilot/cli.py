@@ -8,6 +8,7 @@ from opspilot import __version__
 from opspilot.config import get_settings
 from opspilot.faults.cli import app as faults_app
 from opspilot.logging import configure_logging
+from opspilot.rag.cli import app as kb_app
 
 app = typer.Typer(
     name="opspilot",
@@ -15,6 +16,7 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(faults_app, name="faults")
+app.add_typer(kb_app, name="kb")
 
 
 def _version_callback(value: bool) -> None:
