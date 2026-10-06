@@ -1,0 +1,29 @@
+{
+  "description": "CI retrieval smoke check: Chroma, default chunker, hybrid, no reranking, on a fixed 15-query subset. Fails when Recall@5 drops more than `tolerance` below the baseline measured on 2026-10-05.",
+  "config": {
+    "store": "chroma",
+    "chunker": "markdown_section",
+    "mode": "hybrid",
+    "rerank": false,
+    "alpha": 0.5
+  },
+  "qids": [
+    "q001",
+    "q003",
+    "q005",
+    "q006",
+    "q010",
+    "q012",
+    "q016",
+    "q018",
+    "q020",
+    "q024",
+    "q028",
+    "q041",
+    "q042",
+    "q051",
+    "q052"
+  ],
+  "baseline_recall_at_5": 1.0,
+  "tolerance": 0.05
+}

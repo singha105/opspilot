@@ -42,3 +42,15 @@ jobs:
 
       - name: Unit tests
         run: uv run pytest -m "not integration and not e2e" --cov --cov-report=term
+
+      - name: Cache embedding model
+        uses: actions/cache@v6
+        with:
+          path: data/models
+          key: models-bge-small-en-v1.5-v1
+
+      - name: Retrieval smoke eval (Chroma, 15 queries)
+        run: |
+          uv run opspilot eval check-queries
+          uv run opspilot kb ingest --store chroma --chunker markdown_section
+          uv run opspilot eval retrieval --configs smoke
