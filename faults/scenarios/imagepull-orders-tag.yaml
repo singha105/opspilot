@@ -18,6 +18,6 @@ alert:
 expected:
   root_cause_category: IMAGE_PULL_ERROR
   component: orders-api
-  runbook_ids: []
+  runbook_ids: [rb-image-pull-error]
   acceptable_actions: [rollback_deployment, set_container_image]
 reset: {type: reapply_base}

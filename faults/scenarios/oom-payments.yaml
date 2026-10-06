@@ -18,6 +18,6 @@ alert:
 expected:
   root_cause_category: OOM_KILLED
   component: payments-api
-  runbook_ids: []
+  runbook_ids: [rb-oom-killed]
   acceptable_actions: [patch_container_resources, rollback_deployment]
 reset: {type: reapply_base}

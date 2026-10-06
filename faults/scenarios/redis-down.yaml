@@ -18,6 +18,6 @@ alert:
 expected:
   root_cause_category: DEPENDENCY_UNAVAILABLE
   component: redis
-  runbook_ids: []
+  runbook_ids: [rb-dependency-unavailable]
   acceptable_actions: [scale_deployment]
 reset: {type: reapply_base}

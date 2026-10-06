@@ -19,6 +19,6 @@ alert:
 expected:
   root_cause_category: READINESS_PROBE_MISCONFIG
   component: payments-api
-  runbook_ids: []
+  runbook_ids: [rb-readiness-probe-failures]
   acceptable_actions: [patch_probe, rollback_deployment]
 reset: {type: reapply_base}
