@@ -29,7 +29,7 @@ $0 on an 8 GB laptop.
 - **Evals:** 30 fault scenarios injected into a demo app, scored on root-cause
   accuracy, evidence quality and remediation choice.
 
-## Status: Day 1 of 6
+## Status: Day 2 of 6
 
 | Area | State |
 |---|---|
@@ -38,11 +38,17 @@ $0 on an 8 GB laptop.
 | Shopfront demo app (4 services) | done |
 | Read-only reader / narrow operator RBAC | done, proven by tests |
 | Fault injection framework | done, 5 of 30 scenarios |
-| Knowledge base + hybrid RAG | Day 2 |
+| Knowledge base (52 docs) + hybrid RAG | done, measured on 60 queries |
 | MCP servers | Day 3 |
 | LangGraph agent + human approval | Day 4 |
 | Full eval suite + safety tests | Day 5 |
 | API, UI, docs, v1.0.0 | Day 6 |
+
+**Retrieval, measured.** On 60 graded queries, the default (Weaviate hybrid search over
+section-aware chunks) reaches nDCG@5 0.817 and Recall@5 0.933 at 42 ms p95. Adding
+FlashRank reranking raises nDCG@5 to 0.852, but costs over a second per query on this
+laptop, so it is opt-in. Dense-only search scores 0.672. Details in
+[docs/rag.md](docs/rag.md) and [ADR-0004](docs/adr/0004-retrieval-defaults.md).
 
 Progress notes: [docs/PROGRESS.md](docs/PROGRESS.md). Design decisions:
 [docs/adr/](docs/adr/).
@@ -66,18 +72,24 @@ make fault-inject ID=oom-payments
 make fault-status
 make fault-reset ID=oom-payments
 
+make infra-up                    # Weaviate (HTTP 8090, gRPC 50052)
+uv run opspilot kb ingest        # chunk, embed and index the knowledge base
+uv run opspilot kb search "payments pods restart with exit code 137"
+uv run opspilot eval retrieval --configs all
+
 make down-all                    # stop the cluster, containers and the Ollama model
 ```
 
-`make help` lists every target. `make infra-up` starts Weaviate on
-`localhost:8090`; it isn't needed until Day 2.
+`make help` lists every target.
 
 ## Repository layout
 
 ```
-src/opspilot/   package: config, logging, CLI, models, faults (agent, RAG, MCP to come)
+src/opspilot/   package: config, logging, CLI, models, faults, rag, evals (agent, MCP to come)
 demo/           Shopfront demo service (app/) and kustomize manifests (k8s/)
 faults/         fault scenario definitions with ground-truth root causes
+knowledge/      runbooks, postmortems, service cards and Kubernetes docs
+evals/          retrieval queries, results and reports
 infra/          docker-compose (Weaviate, Phoenix), k3d cluster config, RBAC
 docs/           progress log and architecture decision records
 tests/          unit tests (no cluster) and integration tests (cluster)

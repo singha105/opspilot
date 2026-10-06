@@ -92,13 +92,14 @@ class Retriever:
         query: str | Sequence[str],
         k: int = 6,
         mode: SearchMode = "hybrid",
-        rerank: bool = True,
+        rerank: bool = False,
         filters: Filters | None = None,
     ) -> RetrievalResult:
         """Return the top ``k`` cited chunks for one query or several query variants.
 
         Several queries are fused with RRF; reranking always scores against the first
-        (original) query.
+        (original) query. The defaults (hybrid, no rerank) are the measured defaults
+        from ADR-0004.
         """
         queries = [query] if isinstance(query, str) else list(query)
         if not queries:

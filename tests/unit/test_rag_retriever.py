@@ -98,7 +98,7 @@ def test_retrieve_single_query_hybrid_with_rerank() -> None:
     store = FakeStore({"hybrid": hits(("1", "A", ""), ("2", "B", ""), ("3", "C", ""))})
     reranker = ReverseReranker()
     retriever = Retriever(store, FakeEmbedder(), reranker)
-    result = retriever.retrieve("oom", k=2)
+    result = retriever.retrieve("oom", k=2, rerank=True)
     assert [c.chunk_id for c in result.chunks] == ["3", "2"]
     assert reranker.queries == ["oom"]
     assert {"embed", "search", "rerank", "total"} <= set(result.timings_ms)

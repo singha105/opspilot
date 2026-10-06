@@ -52,7 +52,9 @@ def search(
     query: Annotated[str, typer.Argument(help="Search text.")],
     store: Annotated[StoreName, typer.Option(help="Store to query.")] = "weaviate",
     mode: Annotated[SearchMode, typer.Option(help="dense, keyword or hybrid.")] = "hybrid",
-    rerank: Annotated[bool, typer.Option(help="Rerank with FlashRank.")] = True,
+    rerank: Annotated[
+        bool, typer.Option(help="Rerank with FlashRank (+quality, about +1 s per query).")
+    ] = False,
     chunker: Annotated[ChunkerName, typer.Option(help="Collection to query.")] = (
         "markdown_section"
     ),

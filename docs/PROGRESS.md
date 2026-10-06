@@ -1,5 +1,60 @@
 # Progress
 
+## Day 2 — Knowledge base and hybrid RAG (2026-10-05)
+
+**Done:**
+- Knowledge base of 52 documents: 22 runbooks (14 categories plus 8 distractors), 10
+  postmortems (including two OOM incidents with different causes), 4 service cards and
+  16 Kubernetes docs (CC BY 4.0, pinned commit, `ATTRIBUTION.md`).
+  `scripts/validate_kb.py` runs in CI.
+- The 5 Day 1 scenarios now name their runbooks in `expected.runbook_ids`.
+- `opspilot.rag`: loader, `markdown_section` and `fixed` chunkers with stable ids,
+  fastembed bge-small embeddings with an on-disk cache, Weaviate / Chroma / optional
+  Pinecone stores behind one `VectorStore` protocol, weighted RRF, FlashRank reranker,
+  and a retriever with multi-query fusion, dedupe, a per-document cap and citations.
+- CLI: `opspilot kb ingest | search | stats`, `opspilot eval check-queries | retrieval`.
+- 60-query retrieval eval with a title-leakage check, a 28-config matrix,
+  `evals/retrieval/RESULTS.md`, a chart and raw JSON. CI runs a 15-query Chroma smoke eval.
+
+**Decisions:**
+- [ADR-0004](adr/0004-retrieval-defaults.md): default retrieval is Weaviate hybrid α=0.5 on
+  section chunks without reranking (best nDCG@5 under 300 ms p95).
+- [ADR-0005](adr/0005-vector-store-abstraction.md): one store protocol, identical
+  vectors in every store, a collection per chunker, and RRF for stores without native hybrid.
+
+**Metrics:**
+- Ingest: 740 section chunks and 741 fixed chunks in both Weaviate and Chroma, counts
+  matching (`opspilot kb ingest`). A full re-ingest of both chunkers into both stores
+  takes about 40 s with a warm embedding cache.
+- Retrieval (60 queries, `opspilot eval retrieval --configs all`):
+  - Default config: nDCG@5 0.817, R@5 0.933, MRR@10 0.746, p95 42 ms.
+  - Best overall, Chroma hybrid + rerank: nDCG@5 0.857, p95 1.9 s.
+  - Dense only: nDCG@5 0.672.
+- CI smoke baseline: Recall@5 1.000 on 15 queries (Chroma, hybrid, no rerank).
+- Unit tests: 112 passed, 84% line coverage of `src/opspilot` (`make test`).
+  Store contract suite: Chroma (unit) and Weaviate (integration) pass. Pinecone is
+  skipped because no key is set.
+
+**Known issues / debt:**
+- Latency was measured while the laptop was swapping heavily (8–10 GB of swap in use;
+  a Multipass VM held about 2.6 GB). Treat absolute p95 numbers as upper bounds.
+- The first ingest attempt hung for over 10 minutes: fastembed's default batch of 256
+  long chunks needed gigabytes of padded attention. Fixed with length-sorted batches of 16.
+- Multipass's daemon owns host port 50051 (through launchd), so Weaviate gRPC is
+  published on 50052. Weaviate HTTP stays on 8090.
+- In the default config, a postmortem about the same incident sometimes outranks the
+  runbook (3 of the 4 Recall@5 misses).
+- Reranking costs 0.5–4.5 s p95 here. A smaller reranker or a shorter `max_length` is
+  untested; added to the Day 5 ablations.
+- Two smoke queries sit near the rank-5 cut-off (q016 at rank 5, q041 at rank 4). The
+  subset was chosen before results and was kept. The CI run is the check that x86
+  numerics agree.
+- `kb stats` creates an empty Weaviate collection if one is missing.
+
+**Next:**
+- MCP servers (`k8s` read-only, `kb`, gated `actions`) and record/replay of tool calls.
+
+
 ## Day 1 — Foundation (2026-10-05)
 
 **Done:**

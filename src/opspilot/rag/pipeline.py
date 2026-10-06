@@ -69,15 +69,18 @@ def ingest(
 
 
 def build_retriever(
-    store: StoreName,
+    store: StoreName | None = None,
     chunker: ChunkerName = "markdown_section",
     *,
-    rerank: bool = True,
-    alpha: float = 0.5,
+    rerank: bool | None = None,
+    alpha: float | None = None,
     settings: Settings | None = None,
 ) -> Retriever:
-    """A retriever over one store/chunker collection."""
+    """A retriever over one store/chunker collection; unset options use the ADR-0004 defaults."""
     settings = settings or get_settings()
+    store = store or settings.default_store
+    rerank = settings.retrieval_rerank if rerank is None else rerank
+    alpha = settings.retrieval_alpha if alpha is None else alpha
     embedder = default_embedder()
     reranker: Reranker = default_reranker() if rerank else NoopReranker()
     backend = get_store(store, chunker, dimension=embedder.dimension, settings=settings)
