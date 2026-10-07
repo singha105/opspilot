@@ -58,8 +58,8 @@ def _probe(probe: Any) -> str | None:
         target = f"GET {probe.http_get.path} :{probe.http_get.port}"
     elif probe.tcp_socket:
         target = f"TCP :{probe.tcp_socket.port}"
-    elif probe.exec:
-        target = "exec " + " ".join(probe.exec.command or [])
+    elif getattr(probe, "_exec", None):  # the generated model names the field "_exec"
+        target = "exec " + " ".join(probe._exec.command or [])
     elif probe.grpc:
         target = f"gRPC :{probe.grpc.port}"
     else:

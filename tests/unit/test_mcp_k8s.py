@@ -473,6 +473,15 @@ def test_server_call_through_mcp(tools: K8sTools) -> None:
     assert "payments-api" in blocks[0].text
 
 
+def test_exec_and_tcp_probes_are_described() -> None:
+    from opspilot.mcp_servers.k8s_readonly.backend import _probe
+
+    exec_probe = k8s({"exec": {"command": ["redis-cli", "ping"]}, "periodSeconds": 5}, "V1Probe")
+    tcp_probe = k8s({"tcpSocket": {"port": "redis"}}, "V1Probe")
+    assert _probe(exec_probe) == "exec redis-cli ping every 5s, timeout 1s, fail after 3"
+    assert _probe(tcp_probe).startswith("TCP :redis")  # type: ignore[union-attr]
+
+
 def test_human_age() -> None:
     assert [human_age(s) for s in (5, 125, 7300, 200000)] == ["5s", "2m", "2h", "2d"]
 

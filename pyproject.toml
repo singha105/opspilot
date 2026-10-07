@@ -30,6 +30,7 @@ dependencies = [
 opspilot = "opspilot.cli:app"
 opspilot-k8s = "opspilot.mcp_servers.k8s_readonly.__main__:main"
 opspilot-kb = "opspilot.mcp_servers.knowledge.__main__:main"
+opspilot-actions = "opspilot.mcp_servers.actions.__main__:main"
 
 [project.optional-dependencies]
 pinecone = [
