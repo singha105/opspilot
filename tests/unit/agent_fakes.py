@@ -77,3 +77,77 @@ class ScriptedChatModel(BaseChatModel):
 
 def tool_call(name: str, args: dict[str, Any], call_id: str = "c1") -> AIMessage:
     return AIMessage(content="", tool_calls=[{"name": name, "args": args, "id": call_id}])
+
+
+# ---- tools ------------------------------------------------------------------------------
+
+from pathlib import Path  # noqa: E402
+
+ROOT = Path(__file__).parents[2]
+FIXTURES = ROOT / "evals" / "fixtures"
+
+
+def replay_servers(fixture: str, audit_dir: Path) -> list[Any]:
+    """The real k8s MCP server in replay mode plus a kb server over a stub retriever."""
+    from opspilot.mcp_servers.common import AuditLog, ToolRunner
+    from opspilot.mcp_servers.k8s_readonly.replay import ReplayBackend
+    from opspilot.mcp_servers.k8s_readonly.server import K8sTools
+    from opspilot.mcp_servers.k8s_readonly.server import build_server as build_k8s
+    from opspilot.mcp_servers.knowledge.server import KbTools
+    from opspilot.mcp_servers.knowledge.server import build_server as build_kb
+
+    runner = ToolRunner(AuditLog(audit_dir / "audit.jsonl", "test", "replay"))
+    k8s = K8sTools(ReplayBackend(FIXTURES / f"{fixture}.json"), runner, ["shop"])  # type: ignore[arg-type]
+    kb = KbTools(lambda: StubRetriever(), ROOT / "knowledge", runner)  # type: ignore[arg-type, return-value]
+    return [build_k8s(k8s), build_kb(kb)]
+
+
+class StubRetriever:
+    """Returns fixed chunks from real runbooks so hints and citations resolve."""
+
+    def __init__(self, doc_ids: tuple[str, ...] = ("rb-oom-killed", "rb-bad-rollout")) -> None:
+        self.doc_ids = doc_ids
+        self.queries: list[Any] = []
+
+    def retrieve(self, query: Any, k: int = 6, **kwargs: Any) -> Any:
+        from opspilot.rag.models import RetrievalResult, RetrievedChunk
+
+        self.queries.append(query)
+        chunks = [
+            RetrievedChunk(
+                chunk_id=f"c{i}",
+                doc_id=d,
+                doc_type="runbook",
+                title=d,
+                section="Symptoms",
+                text=f"{d} symptoms text",
+                score=1.0 - i / 10,
+                rank=i + 1,
+                citation_id=f"R{i + 1}",
+            )
+            for i, d in enumerate(self.doc_ids[:k])
+        ]
+        return RetrievalResult(chunks=chunks, timings_ms={"total": 1.0})
+
+
+class FakeToolBox:
+    """Tools answered by plain functions; records every call."""
+
+    def __init__(self, outputs: dict[str, Any]) -> None:
+        self.outputs = outputs
+        self.calls: list[tuple[str, dict[str, Any]]] = []
+
+    def specs(self, names: Any) -> list[dict[str, Any]]:
+        return [
+            {
+                "type": "function",
+                "function": {"name": n, "description": n, "parameters": {"type": "object"}},
+            }
+            for n in names
+            if n in self.outputs
+        ]
+
+    async def call(self, name: str, args: dict[str, Any]) -> str:
+        self.calls.append((name, args))
+        out = self.outputs[name]
+        return out(args) if callable(out) else out
