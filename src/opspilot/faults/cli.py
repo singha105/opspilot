@@ -1,4 +1,4 @@
-"""``opspilot faults`` commands: list, inject, reset and status."""
+"""``opspilot faults`` commands: list, inject, reset, status and record."""
 
 from typing import Annotated
 
@@ -76,3 +76,44 @@ def status() -> None:
         mark = "[green]yes[/green]" if row.healthy else "[red]no[/red]"
         table.add_row(row.name, f"{row.ready}/{row.desired}", ", ".join(row.reasons), mark)
     console.print(table)
+
+
+@app.command()
+def record(
+    scenario_id: Annotated[
+        str | None, typer.Argument(help="Scenario id, or 'healthy' for the no-fault baseline.")
+    ] = None,
+    all_: Annotated[bool, typer.Option("--all", help="Every scenario plus the baseline.")] = False,
+) -> None:
+    """Record a replay fixture: inject, wait, call every read tool, save, reset."""
+    from opspilot.faults.recorder import HEALTHY, record_fixture
+    from opspilot.mcp_servers.common import AuditLog, ToolRunner
+    from opspilot.mcp_servers.common.kube import apis_from_kubeconfig
+    from opspilot.mcp_servers.k8s_readonly.backend import K8sReadBackend
+    from opspilot.mcp_servers.k8s_readonly.server import SERVER_NAME, K8sTools
+
+    if not all_ and scenario_id is None:
+        console.print("[red]give a scenario id or --all[/red]")
+        raise typer.Exit(code=2)
+    settings = get_settings()
+    scenarios = load_scenarios(settings.scenarios_dir)
+    ids = [HEALTHY, *scenarios] if all_ else [scenario_id or HEALTHY]
+    backend = K8sReadBackend(apis_from_kubeconfig(settings.reader_kubeconfig))
+    tools = K8sTools(
+        backend,
+        ToolRunner(AuditLog(settings.audit_log, SERVER_NAME, "live")),
+        settings.allowed_namespaces,
+    )
+    for fixture_id in ids:
+        scenario = None if fixture_id == HEALTHY else _scenario(fixture_id)
+        path = settings.scenarios_dir / f"{fixture_id}.yaml" if scenario else None
+        out = record_fixture(
+            scenario,
+            path,
+            _injector(),
+            tools,
+            backend,
+            settings.fixtures_dir,
+            settings.demo_namespace,
+        )
+        console.print(f"recorded [bold]{fixture_id}[/bold] -> {out}")
