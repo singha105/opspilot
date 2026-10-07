@@ -1,8 +1,22 @@
 """Clean, structured tool errors. The model never sees a stack trace."""
 
+import json
 from typing import Any
 
 from pydantic import ValidationError
+
+
+def _api_message(exc: BaseException) -> str:
+    """The API server's own message from an ApiException body, if any."""
+    body = getattr(exc, "body", None)
+    if isinstance(body, bytes):
+        body = body.decode("utf-8", errors="replace")
+    if isinstance(body, str):
+        try:
+            return str(json.loads(body).get("message", ""))[:300]
+        except (ValueError, AttributeError):
+            return ""
+    return ""
 
 
 class ToolError(Exception):
@@ -51,7 +65,10 @@ def to_tool_error(exc: BaseException) -> ToolError:
             )
         if status == 400:
             return ToolError(
-                "bad_request", reason or "The API server rejected the request.", status=400
+                "bad_request",
+                _api_message(exc) or reason or "The API server rejected the request.",
+                "For previous=true the container must have restarted at least once.",
+                status=400,
             )
         return ToolError(
             "api_error", f"Kubernetes API returned {status} {reason}".strip(), status=status

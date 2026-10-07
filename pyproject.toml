@@ -28,6 +28,8 @@ dependencies = [
 
 [project.scripts]
 opspilot = "opspilot.cli:app"
+opspilot-k8s = "opspilot.mcp_servers.k8s_readonly.__main__:main"
+opspilot-kb = "opspilot.mcp_servers.knowledge.__main__:main"
 
 [project.optional-dependencies]
 pinecone = [
@@ -62,6 +64,8 @@ ignore = ["S101"]
 "tests/**" = ["S", "T20"]
 "demo/app/tests/**" = ["S", "T20"]
 "scripts/**" = ["T20"]
+# Output fields mirror Kubernetes' camelCase JSON (restartCount, lastState, ...) on purpose.
+"src/opspilot/mcp_servers/k8s_readonly/models.py" = ["N815"]
 
 [tool.mypy]
 python_version = "3.12"
