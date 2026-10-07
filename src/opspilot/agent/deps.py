@@ -45,11 +45,15 @@ class AgentDeps:
     budgets: Budgets = field(default_factory=Budgets)
     actions: ToolBox | None = None  # the gated actions server; only set for live runs
     report_dir: Path = Path("runs")
-    clock: Callable[[], float] = time.monotonic
+    # Wall-clock seconds, so a run can be resumed by another process.
+    clock: Callable[[], float] = time.time
     sleep: Callable[[float], Any] | None = None
+    # Set when resuming after a human decision: the budget counts from here, not the alert.
+    budget_from: float | None = None
 
     def remaining(self, started_at: float) -> float:
-        return self.budgets.run_s - (self.clock() - started_at)
+        base = max(started_at, self.budget_from or started_at)
+        return self.budgets.run_s - (self.clock() - base)
 
     def timeout(self, started_at: float) -> float:
         """Per-call timeout: the node budget, but never past the end of the run."""
