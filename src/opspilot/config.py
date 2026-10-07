@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     scenarios_dir: Path = Path("faults/scenarios")
     demo_base_dir: Path = Path("demo/k8s/base")
 
+    # Optional Phoenix tracing (needs `uv sync --group tracing` and the Phoenix container).
+    tracing: bool = False
+    phoenix_endpoint: str = "http://localhost:6006/v1/traces"
+
     # MCP servers
     allowed_namespaces: list[str] = Field(default_factory=lambda: ["shop"])
     runs_dir: Path = Path("runs")

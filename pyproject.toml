@@ -54,6 +54,10 @@ dev = [
     "ruff>=0.16.10",
     "types-pyyaml>=6.0.12.20260906",
 ]
+tracing = [
+    "arize-phoenix-otel>=0.17.2",
+    "openinference-instrumentation-langchain>=0.1.78",
+]
 
 [tool.ruff]
 line-length = 100
@@ -79,6 +83,11 @@ plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = ["kubernetes.*", "flashrank.*", "rank_bm25.*", "chromadb.*", "pinecone.*"]
+ignore_missing_imports = true
+
+# Optional `tracing` group: CI type-checks without it installed.
+[[tool.mypy.overrides]]
+module = ["phoenix.*", "openinference.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

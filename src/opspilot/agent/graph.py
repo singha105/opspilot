@@ -52,7 +52,15 @@ def _wrap(
         elapsed = round((time.perf_counter() - start) * 1000, 1)
         metrics = (update.get("metrics") or state.metrics).model_copy(deep=True)
         metrics.node_latency_ms[name] = metrics.node_latency_ms.get(name, 0.0) + elapsed
-        deps.events.emit("node_end", node=name, ms=elapsed, keys=sorted(update))
+        deps.events.emit(
+            "node_end",
+            node=name,
+            ms=elapsed,
+            tokens_in=metrics.tokens_in - state.metrics.tokens_in,
+            tokens_out=metrics.tokens_out - state.metrics.tokens_out,
+            tool_calls=metrics.tool_calls - state.metrics.tool_calls,
+            keys=sorted(update),
+        )
         return {**update, "metrics": metrics}
 
     node.__name__ = name
