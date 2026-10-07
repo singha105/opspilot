@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from opspilot.config import Settings
 from opspilot.llm import (
     MAX_OUTPUT_TOKENS,
+    LLMPool,
     StructuredOutputError,
     astructured,
     extract_json,
@@ -86,6 +87,17 @@ def test_get_llm_roles() -> None:
     assert structured.seed == 42  # type: ignore[attr-defined]
     assert structured.num_ctx == 8192  # type: ignore[attr-defined]
     assert structured.num_predict == MAX_OUTPUT_TOKENS["diagnose"]  # type: ignore[attr-defined]
+
+
+def test_llm_pool_reuses_and_closes_models() -> None:
+    pool = LLMPool(Settings(_env_file=None))
+    first = pool("diagnose")
+    assert pool("diagnose") is first
+    assert pool("investigate") is not first
+    http = first._async_client._client  # type: ignore[attr-defined]
+    asyncio.run(pool.aclose())
+    assert http.is_closed
+    assert pool("diagnose") is not first  # a fresh model after closing
 
 
 def test_unknown_provider_rejected() -> None:

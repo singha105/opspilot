@@ -5,6 +5,7 @@ from typing import Annotated
 import typer
 
 from opspilot import __version__
+from opspilot.agent.cli import investigate, resume, runs_app
 from opspilot.config import get_settings
 from opspilot.evals.cli import app as eval_app
 from opspilot.faults.cli import app as faults_app
@@ -19,6 +20,9 @@ app = typer.Typer(
 app.add_typer(faults_app, name="faults")
 app.add_typer(kb_app, name="kb")
 app.add_typer(eval_app, name="eval")
+app.add_typer(runs_app, name="runs")
+app.command("investigate")(investigate)
+app.command("resume")(resume)
 
 
 def _version_callback(value: bool) -> None:

@@ -65,6 +65,31 @@ def get_llm(role: Role, settings: Settings | None = None) -> BaseChatModel:
     )
 
 
+class LLMPool:
+    """One chat model per role for a run, so HTTP clients are reused and closed at the end."""
+
+    def __init__(self, settings: Settings | None = None) -> None:
+        self._settings = settings
+        self._models: dict[Role, BaseChatModel] = {}
+
+    def __call__(self, role: Role) -> BaseChatModel:
+        if role not in self._models:
+            self._models[role] = get_llm(role, self._settings)
+        return self._models[role]
+
+    async def aclose(self) -> None:
+        """Close the HTTP clients of the models created so far."""
+        for model in self._models.values():
+            for attr in ("_async_client", "_client"):
+                http = getattr(getattr(model, attr, None), "_client", None)
+                close = getattr(http, "aclose", None) or getattr(http, "close", None)
+                if close is not None:
+                    result = close()
+                    if asyncio.iscoroutine(result):
+                        await result
+        self._models.clear()
+
+
 _THINK = re.compile(r"<think>.*?</think>", re.DOTALL)
 _FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL)
 
