@@ -15,7 +15,8 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="OPSPILOT_",
-        env_file=".env",
+        # .secrets/.env holds local secrets such as OPSPILOT_APPROVAL_SECRET (gitignored).
+        env_file=(".env", ".secrets/.env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -57,6 +58,12 @@ class Settings(BaseSettings):
     scenarios_dir: Path = Path("faults/scenarios")
     demo_base_dir: Path = Path("demo/k8s/base")
 
+    # MCP servers
+    allowed_namespaces: list[str] = Field(default_factory=lambda: ["shop"])
+    runs_dir: Path = Path("runs")
+    fixtures_dir: Path = Path("evals/fixtures")
+    approval_secret: SecretStr | None = None
+
     @property
     def chroma_dir(self) -> Path:
         """Persistent Chroma data and its BM25 indexes."""
@@ -71,6 +78,16 @@ class Settings(BaseSettings):
     def embedding_cache(self) -> Path:
         """SQLite cache of passage embeddings keyed by text hash."""
         return self.data_dir / "cache" / "embeddings.sqlite"
+
+    @property
+    def audit_log(self) -> Path:
+        """JSONL audit log of every MCP tool call."""
+        return self.runs_dir / "audit.jsonl"
+
+    @property
+    def nonce_db(self) -> Path:
+        """Used approval-token nonces (single-use enforcement)."""
+        return self.runs_dir / "approval_nonces.sqlite"
 
     @property
     def reader_kubeconfig(self) -> Path:
