@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-07
+
+### Added
+- LangGraph agent (`opspilot.agent`): ingest, triage, retrieve, investigate, diagnose,
+  propose, human approval, execute, verify and report nodes over a typed
+  `IncidentState`, checkpointed in SQLite.
+- Human approval with `interrupt()`: approve, reject or edit (parameters only), from the
+  same process or later with `opspilot resume`; approval tokens are minted only after a
+  decision.
+- Guards: citation checks, prompt-injection detection, a category-to-action allowlist,
+  escalation on `UNKNOWN`, low confidence or a diagnosis the pod evidence contradicts,
+  and per-run budgets.
+- Ollama model factory with per-role settings, structured output with repair turns, and
+  versioned prompts with a check against scenario-specific content.
+- Constrained-JSON tool selection with suggested next calls for small models; native
+  tool calling remains available (`OPSPILOT_AGENT_TOOL_STRATEGY`).
+- `opspilot investigate | resume | runs`, per-run event logs and state in `runs/`, and
+  optional Phoenix tracing (`tracing` dependency group).
+- `docs/agent.md`, ADR-0009, ADR-0010 and ADR-0011.
+
 ## [0.3.0] - 2026-10-07
 
 ### Added

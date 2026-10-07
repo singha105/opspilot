@@ -1,5 +1,104 @@
 # Progress
 
+## Day 4 — LangGraph agent with human approval (2026-10-07)
+
+**Done:**
+- Incident models and a typed `IncidentState` with append-only evidence, security flags
+  and errors; a LangGraph `StateGraph` of ten nodes with an `AsyncSqliteSaver`
+  checkpointer and an explicit allowlist of checkpointed types.
+- `llm.py`: per-role Ollama models (temperature 0, seed 42, `num_ctx` 8192, per-role output
+  limits) and `astructured`, which repairs invalid output by quoting the validation error.
+- Six versioned prompts with the 5-part structure and a test that fails on demo service
+  names, fault values or expected answers.
+- Guards: citations, prompt injection (instruction patterns only for documents), a
+  category-to-action allowlist (rollback only after a recent rollout), escalation on
+  `UNKNOWN`, confidence < 0.5, or a pod-level diagnosis whose component's pods are all
+  healthy.
+- Human approval with `interrupt()`: approve / reject / edit (parameters only,
+  revalidated). The approval token is minted in `execute`, after the decision. Live runs
+  refuse a decision given before the proposal is shown. A run paused in one process
+  resumes in another (`opspilot resume`).
+- `opspilot investigate | resume | runs`; `runs/<incident>/events.jsonl`, `state.json` and
+  `report.md`; optional Phoenix tracing (`tracing` group, `OPSPILOT_TRACING=1`).
+- Live run (acceptance): `make cluster-up kubeconfigs demo-deploy`, injected
+  `oom-payments`, `opspilot investigate --scenario oom-payments --mode live` paused with a
+  dry-run diff (memory 128Mi -> 512Mi); I approved after reviewing it
+  (`opspilot resume ... --decision approve --approver arnab`). The patch ran with a fresh
+  token, verification saw payments-api ready after 10.5 s, and all four deployments were
+  healthy. Fault reset, cluster stopped.
+- `docs/agent.md`, ADR-0009, ADR-0010, ADR-0011.
+
+**Decisions:**
+- [ADR-0009](adr/0009-state-machine-over-free-form-react.md): a fixed state machine with
+  one bounded loop, not a free-form ReAct agent.
+- [ADR-0010](adr/0010-human-in-the-loop-approval.md): `interrupt()` + SQLite checkpoints;
+  tokens minted only after a human decision.
+- [ADR-0011](adr/0011-small-model-strategies.md): constrained-JSON tool selection, prompt
+  scaffolding and computed defaults for a 4B model.
+
+**Metrics:**
+- Replay of every recorded fixture (`opspilot investigate --mode replay --decision approve
+  --approver replay-eval`, Weaviate retrieval, `qwen3:4b`, M-series 8 GB). One run each,
+  final code:
+
+  | fixture | expected | diagnosed | outcome | time | LLM calls | tokens in/out | tool calls |
+  |---|---|---|---|---|---|---|---|
+  | oom-payments | OOM_KILLED / payments-api | OOM_KILLED / payments-api, 0.95 | patch memory 512Mi | 142 s | 15 | 36.4k / 1.1k | 8 |
+  | imagepull-orders-tag | IMAGE_PULL_ERROR / orders-api | same, 0.95 | set image to the last healthy one | 111 s | 15 | 36.8k / 0.9k | 7 |
+  | missing-env-inventory | CONFIG_MISSING_ENV / inventory-api | same, 0.95 | rollback (recent rollout) | 125 s | 16 | 37.7k / 1.1k | 6 |
+  | readiness-payments | READINESS_PROBE_MISCONFIG / payments-api | same, 0.95 | rollback (recent rollout) | 152 s | 16 | 33.4k / 1.1k | 8 |
+  | redis-down | DEPENDENCY_UNAVAILABLE / redis | DEPENDENCY_UNAVAILABLE / payments-api | escalated: contradicts evidence | 132 s | 14 | 32.1k / 1.2k | 8 |
+  | healthy (false alarm) | no fault | (model: readiness on payments-api) | escalated: no active fault found | 102 s | 15 | 35.5k / 1.1k | 4 |
+
+  Category right in 5 of 5 faults, component right in 4 of 5; every proposal cites
+  evidence; no wrong action reached approval. This is 6 runs, not an evaluation; Day 5
+  scores 30 scenarios.
+- Live `oom-payments`: 151 s of agent time (triage 6.8 s, retrieve 1.8 s, investigate
+  85.6 s for 8 calls, diagnose 25.5 s, propose 13.3 s, execute 0.1 s, verify 10.5 s,
+  report 7.8 s), 13 LLM calls, 32.0k / 0.9k tokens.
+- Iterations, all measured on the oom-payments replay unless noted:
+  1. Native tool calls with thinking: 4 calls in 342 s, run deadline hit, escalated.
+  2. Constrained JSON steps: 73 s total, but 1 real call and 10 blocked `list_pods`
+     repeats.
+  3. Calls made + suggested next calls + auto-run after 2 repeats: 8 calls, describe_pod
+     and logs collected, 139 s; proposal 256Mi (copied from the prompt example, below the
+     service's need).
+  4. Computed action defaults (4x current memory, max 512Mi) in the remediation prompt:
+     512Mi proposed.
+  5. Across all fixtures: `healthy` was diagnosed READINESS_PROBE_MISCONFIG at 0.95 from
+     old Unhealthy events, `readiness-payments` escalated because the model put R3 in
+     `evidence_refs`, and `redis-down` proposed scaling payments-api. Added the
+     healthy-pods contradiction check (one repair turn, then escalate), moving E/R ids to
+     the right field in code, and suggestions for services named in error logs. Healthy
+     and readiness now pass; redis-down escalates instead of acting.
+- Tests: 354 unit tests passed, 87% line coverage of `src/opspilot` (`make test`); every
+  commit of the day passes the unit tests on its own.
+
+**Known issues / debt:**
+- redis-down: the 8-call budget runs out before the agent checks redis itself (it spends
+  a call and two turns on `previous=true` logs for a pod that never restarted, and follows
+  a stale payments-api error line). It escalates safely but misses the component. Budget
+  and suggestion order are Day 5 experiments.
+- The recorded fixtures contain older Unhealthy events and log lines from earlier fault
+  runs. That is realistic noise, and it caused the healthy false positive before the
+  contradiction check.
+- `qwen3:4b` is Qwen3-4B-2507, which cannot turn thinking off for free-form replies; only
+  schema-constrained calls are fast. Native tool calling (~85 s per step) stays as an
+  option, not the default.
+- Environment variable values are hidden from the agent by design, so the memory a service
+  needs is usually unknown; the 4x default is a heuristic and verification reports
+  `not_resolved` if it is too small.
+- ReplicaSet creation times are unreliable for "recent rollout" (an old ReplicaSet is
+  reused when a template is reverted), so recency comes from `ScalingReplicaSet` events.
+- One replay batch hit Ollama timeouts and a Weaviate connection timeout under memory
+  pressure; retrieval failures now degrade to no-RAG instead of failing the run.
+- The approver name is self-asserted (single machine, no SSO).
+
+**Next:**
+- Day 5: the 30-scenario fault suite, agent eval runners and scorers (category, component,
+  citation validity, action correctness, safety), RAG and suggestion ablations, safety
+  tests (injection, budget, approval bypass).
+
 ## Day 3 — MCP servers and record/replay (2026-10-07)
 
 **Done:**

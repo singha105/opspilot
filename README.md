@@ -29,7 +29,7 @@ $0 on an 8 GB laptop.
 - **Evals:** 30 fault scenarios injected into a demo app, scored on root-cause
   accuracy, evidence quality and remediation choice.
 
-## Status: Day 3 of 6
+## Status: Day 4 of 6
 
 | Area | State |
 |---|---|
@@ -41,7 +41,7 @@ $0 on an 8 GB laptop.
 | Knowledge base (52 docs) + hybrid RAG | done, measured on 60 queries |
 | MCP servers (k8s read-only, kb, gated actions) | done, with approval tokens |
 | Record/replay fixtures | done, 6 fixtures |
-| LangGraph agent + human approval | Day 4 |
+| LangGraph agent + human approval | done, one live fix approved end to end |
 | Full eval suite + safety tests | Day 5 |
 | API, UI, docs, v1.0.0 | Day 6 |
 
@@ -57,6 +57,16 @@ that dry-runs the change and executes it only with a human-approved, single-use 
 bound to that exact action. Every call is redacted, size-capped and audited. Six recorded
 fixtures let agent evals replay real incidents without a cluster. See
 [docs/mcp.md](docs/mcp.md) and [docs/security.md](docs/security.md).
+
+**Agent, approved by a human.** A LangGraph state machine triages the alert, retrieves
+runbooks, investigates with up to 8 read-only tool calls, and writes a diagnosis that
+must cite its evidence. Any change pauses the run until a person approves, rejects or
+edits it, possibly from another terminal; only then is a single-use token minted. On the
+six recorded fixtures it named the right category for all five faults (component right
+in four), escalated the healthy false alarm, and never sent a wrong action to approval,
+in 102-152 s per run on `qwen3:4b`. One live run fixed an OOM-killed service after
+approval. See [docs/agent.md](docs/agent.md) and ADRs
+[0009](docs/adr/0009-state-machine-over-free-form-react.md)-[0011](docs/adr/0011-small-model-strategies.md).
 
 Progress notes: [docs/PROGRESS.md](docs/PROGRESS.md). Design decisions:
 [docs/adr/](docs/adr/).
@@ -88,6 +98,12 @@ uv run opspilot eval retrieval --configs all
 uv run opspilot faults record --all            # record replay fixtures (cluster needed)
 uv run python scripts/mcp_smoke.py --mode replay --fixture evals/fixtures/oom-payments.json
 npx @modelcontextprotocol/inspector uv run opspilot-k8s
+
+ollama pull qwen3:4b             # local model (~2.5 GB)
+uv run opspilot investigate --scenario oom-payments --mode replay   # no cluster needed
+uv run opspilot investigate --scenario oom-payments --mode live     # pauses for approval
+uv run opspilot resume <incident-id>                                # approve / reject / edit
+uv run opspilot runs list
 
 make down-all                    # stop the cluster, containers and the Ollama model
 ```

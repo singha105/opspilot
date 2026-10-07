@@ -1,0 +1,6 @@
+{
+  "name": "KubePodNotReady",
+  "severity": "warning",
+  "summary": "payments-api pod reported not ready in namespace shop",
+  "labels": {"namespace": "shop", "deployment": "payments-api"}
+}
