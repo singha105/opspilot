@@ -69,8 +69,8 @@ def script(*tail: Any) -> list[Any]:
     pod = oom_pod()
     calls = [
         tool_call(
-            c.tool_calls[0]["name"],
-            {k: (pod if v == "__POD__" else v) for k, v in c.tool_calls[0]["args"].items()},
+            c["tool"],
+            {k: (pod if v == "__POD__" else v) for k, v in c["args"].items()},
         )
         for c in INVESTIGATION
     ]

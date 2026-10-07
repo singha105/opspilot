@@ -22,11 +22,12 @@ from pydantic import BaseModel, ValidationError
 from opspilot.config import Settings, get_settings
 from opspilot.models.incident import RunMetrics
 
-Role = Literal["triage", "investigate", "summarize", "diagnose", "propose", "report"]
+Role = Literal["triage", "investigate", "select_tool", "summarize", "diagnose", "propose", "report"]
 TOOL_ROLES: frozenset[str] = frozenset({"investigate"})
 MAX_OUTPUT_TOKENS: dict[str, int] = {
     "triage": 400,
     "investigate": 1536,
+    "select_tool": 256,
     "summarize": 200,
     "diagnose": 700,
     "propose": 500,

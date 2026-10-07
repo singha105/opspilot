@@ -9,15 +9,18 @@ from agent_fakes import (
     FakeToolBox,
     ScriptedChatModel,
     StubRetriever,
+    native_call,
     replay_servers,
     tool_call,
 )
 from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableLambda
 
 from opspilot.agent.deps import AgentDeps, Budgets
 from opspilot.agent.nodes import investigation as inv
 from opspilot.agent.state import IncidentState
 from opspilot.agent.toolbox import InProcessToolBox
+from opspilot.config import Settings
 from opspilot.models import Alert
 from opspilot.models.incident import Triage
 
@@ -169,13 +172,21 @@ def test_retrieve_skipped_without_rag() -> None:
 # ---- investigate ------------------------------------------------------------------------------
 
 
+NATIVE = Settings(_env_file=None, agent_tool_strategy="native")  # type: ignore[call-arg]
+
+
 def run_investigate(
-    fixture: str, replies: list[Any], tmp_path: Path, budget: int = 8
+    fixture: str,
+    replies: list[Any],
+    tmp_path: Path,
+    budget: int = 8,
+    settings: Settings | None = None,
 ) -> tuple[dict[str, Any], Any]:
     async def go() -> dict[str, Any]:
         async with InProcessToolBox(*replay_servers(fixture, tmp_path)) as toolbox:
             model, factory = models(*replies)
-            d = deps(toolbox, factory, budgets=Budgets(tool_calls=budget))
+            extra: dict[str, Any] = {"settings": settings} if settings else {}
+            d = deps(toolbox, factory, budgets=Budgets(tool_calls=budget), **extra)
             result = await inv.investigate(state(), d)
             result["_model"] = model
             return result
@@ -201,7 +212,6 @@ def test_investigate_collects_evidence_from_replay(tmp_path: Path) -> None:
         [
             tool_call("list_pods", {"namespace": "shop"}),
             tool_call("list_pods", {"namespace": "shop"}),  # duplicate: blocked
-            tool_call("delete_pod", {"name": pod}),  # not a tool: refused
             tool_call("describe_pod", {"namespace": "shop", "name": pod}),
             tool_call("get_pod_logs", {"namespace": "shop", "name": pod, "previous": True}),
             tool_call("finish_investigation", {"reason": "OOMKilled at startup"}),
@@ -217,9 +227,110 @@ def test_investigate_collects_evidence_from_replay(tmp_path: Path) -> None:
     assert evidence[2].summary.startswith("0 log lines from previous container")
     assert out["metrics"].tool_calls == 3
     prompts = [m[0].content for m in model.prompts]
-    assert any("Blocked: list_pods was already called" in p for p in prompts)
-    assert any("'delete_pod' is not an available tool" in p for p in prompts)
-    assert "write" not in {s["function"]["name"] for s in model.bound_tools}
+    assert any("Blocked: list_pods(namespace=shop) was already called" in p for p in prompts)
+    assert "- get_pod_logs(namespace, name, container?, previous?" in prompts[0]  # tool catalog
+    assert "delete" not in prompts[0].split("Tools (")[1].split("## Instructions")[0]
+    assert "Calls already made (do not repeat them): list_pods(namespace=shop)" in prompts[1]
+    assert f"- describe_pod(namespace=shop, name={pod})" in prompts[1]  # suggested next
+
+
+def test_suggestions_follow_the_evidence() -> None:
+    from opspilot.models.incident import Evidence
+
+    pods = Evidence(
+        id="E1",
+        tool="list_pods",
+        summary="s",
+        excerpt="web-1 0/1 Running restarts=3 reason=CrashLoopBackOff last=OOMKilled\n"
+        "db-1 1/1 Running restarts=0",
+    )
+    seen: set[str] = set()
+    first = inv.suggest_next_calls([], "shop", "web", seen)
+    assert first[0] == ("list_pods", {"namespace": "shop"})
+    after = inv.suggest_next_calls([pods], "shop", "web", seen)
+    assert after[:2] == [
+        ("describe_pod", {"namespace": "shop", "name": "web-1"}),
+        ("get_pod_logs", {"namespace": "shop", "name": "web-1", "previous": True}),
+    ]
+    assert all(args.get("name") != "db-1" for _, args in after)  # healthy pod not suggested
+    seen.add(inv.call_key("describe_pod", {"namespace": "shop", "name": "web-1"}))
+    assert ("describe_pod", {"namespace": "shop", "name": "web-1"}) not in inv.suggest_next_calls(
+        [pods], "shop", "web", seen
+    )
+
+
+def test_suggestions_follow_dependencies_named_in_error_logs() -> None:
+    from opspilot.models.incident import Evidence
+
+    logs = Evidence(
+        id="E2",
+        tool="get_pod_logs",
+        args={"namespace": "shop", "name": "web-1"},
+        summary="web cannot reach its cache",
+        excerpt='{"level": "ERROR", "ts": "2026-01-01T06:25:38Z", "url": "http://web:8080", '
+        '"error": "cache:6379 connection refused"}',
+    )
+    assert inv.dependencies_in_logs([logs], "web") == ["cache"]
+    pods = Evidence(id="E1", tool="list_pods", summary="s", excerpt="web-1 1/1 Running restarts=0")
+    assert inv.suggest_next_calls([pods, logs], "shop", "web", set())[0] == (
+        "get_service_endpoints",
+        {"namespace": "shop", "name": "cache"},
+    )
+
+
+def test_suggestions_skip_calls_done_with_other_options() -> None:
+    from opspilot.models.incident import Evidence
+
+    done = [
+        Evidence(
+            id="E1", tool="get_events", args={"namespace": "shop", "since_minutes": 30}, summary="s"
+        ),
+        Evidence(
+            id="E2", tool="get_deployment", args={"namespace": "shop", "name": "web"}, summary="s"
+        ),
+        Evidence(
+            id="E3",
+            tool="get_rollout_history",
+            args={"namespace": "shop", "name": "web"},
+            summary="s",
+        ),
+        Evidence(id="E4", tool="list_pods", args={"namespace": "shop"}, summary="s", error=True),
+    ]
+    assert inv.suggest_next_calls(done, "shop", "web", set()) == [
+        ("list_pods", {"namespace": "shop"})  # failed calls do not count as done
+    ]
+
+
+def test_repeated_blocked_calls_fall_back_to_the_top_suggestion(tmp_path: Path) -> None:
+    pod = pod_name("oom-payments", "payments-api")
+    stuck = tool_call("list_pods", {"namespace": "shop"})
+    out, _ = run_investigate(
+        "oom-payments",
+        [stuck, stuck, stuck, tool_call("finish_investigation", {"reason": "done"})],
+        tmp_path,
+    )
+    tools = [(e.tool, e.args.get("name")) for e in out["evidence"]]
+    assert tools == [("list_pods", None), ("describe_pod", pod)]  # second repeat -> suggestion
+
+
+def test_native_strategy_refuses_tools_that_do_not_exist(tmp_path: Path) -> None:
+    pod = pod_name("oom-payments", "payments-api")
+    out, model = run_investigate(
+        "oom-payments",
+        [
+            native_call("delete_pod", {"name": pod}),  # not a tool: refused
+            native_call("describe_pod", {"namespace": "shop", "name": pod}),
+            native_call("finish_investigation", {"reason": "done"}),
+        ],
+        tmp_path,
+        settings=NATIVE,
+    )
+    assert [e.tool for e in out["evidence"]] == ["describe_pod"]
+    assert any("'delete_pod' is not an available tool" in m[0].content for m in model.prompts)
+    assert {t["function"]["name"] for t in model.bound_tools} >= {
+        "list_pods",
+        "finish_investigation",
+    }
 
 
 def test_log_evidence_gets_an_llm_summary(tmp_path: Path) -> None:
@@ -250,10 +361,16 @@ def test_investigate_enforces_the_tool_budget(tmp_path: Path) -> None:
 
 def test_investigate_survives_a_model_without_tool_calls(tmp_path: Path) -> None:
     replies = [AIMessage(content="I think it is fine.")] * 11
-    out, model = run_investigate("healthy", replies, tmp_path, budget=8)
+    out, model = run_investigate("healthy", replies, tmp_path, budget=8, settings=NATIVE)
     assert out["evidence"] == []
     assert len(model.prompts) == 11  # bounded by budget + 3 turns
     assert "had no tool call" in model.prompts[-1][0].content
+
+
+def test_json_strategy_survives_unparseable_steps(tmp_path: Path) -> None:
+    out, model = run_investigate("healthy", ["not json"] * 30, tmp_path, budget=8)
+    assert out["evidence"] == []
+    assert len(model.prompts) == 22  # 11 turns, each with one repair attempt
 
 
 def test_investigate_flags_injection_in_tool_output() -> None:
@@ -284,8 +401,11 @@ def test_investigate_times_out_cleanly() -> None:
     toolbox = FakeToolBox({"list_pods": "{}"})
 
     class Slow(ScriptedChatModel):
-        async def ainvoke(self, *a: Any, **k: Any) -> Any:  # type: ignore[override]
-            await asyncio.sleep(5)
+        def with_structured_output(self, schema: Any, **k: Any) -> Any:  # type: ignore[override]
+            async def slow(_: Any) -> Any:
+                await asyncio.sleep(5)
+
+            return RunnableLambda(slow)
 
     slow = Slow()
     d = deps(toolbox, lambda r: slow, budgets=Budgets(llm_timeout_s=0.05, run_s=1000))

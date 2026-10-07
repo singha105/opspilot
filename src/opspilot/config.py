@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     llm_num_ctx: int = 8192
     # Long enough to stay loaded through one run, short enough to free ~3 GB on an 8 GB Mac.
     llm_keep_alive: str = "5m"
+    # How the investigate loop picks tools: "json" (constrained JSON, fast on thinking models)
+    # or "native" (tool calling). See ADR-0011.
+    agent_tool_strategy: Literal["json", "native"] = "json"
 
     weaviate_url: str = "http://localhost:8090"
     weaviate_grpc_port: int = 50052

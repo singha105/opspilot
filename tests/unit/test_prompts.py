@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from opspilot.agent.prompts import PROMPTS_DIR, SECTIONS, PromptError, load_prompt, untrusted
@@ -22,7 +24,7 @@ SCENARIO_DETAILS = [
 @pytest.mark.parametrize("name", NAMES)
 def test_prompt_structure_and_version(name: str) -> None:
     prompt = load_prompt(name)
-    assert prompt.version.endswith("-v1")
+    assert re.search(r"-v\d+$", prompt.version)
     assert len(prompt.sha256) == 12
     positions = [prompt.template.find(s) for s in SECTIONS]
     assert positions == sorted(positions)

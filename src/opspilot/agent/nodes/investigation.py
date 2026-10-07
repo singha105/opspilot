@@ -3,13 +3,18 @@
 import asyncio
 import json
 import re
-from typing import Any
+from typing import Any, Literal
 
 from langchain_core.messages import AIMessage, HumanMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 
 from opspilot.agent.deps import AgentDeps
-from opspilot.agent.evidence import SUMMARY_MAX, notable_log_lines, summarize
+from opspilot.agent.evidence import (
+    SUMMARY_MAX,
+    notable_log_lines,
+    pods_from_evidence,
+    summarize,
+)
 from opspilot.agent.guards import detect_injection
 from opspilot.agent.nodes.common import (
     CATEGORIES,
@@ -215,6 +220,125 @@ async def _log_summary(
     return result.summary
 
 
+REPEATS_BEFORE_FALLBACK = 2
+MAX_SUGGESTIONS = 4
+
+
+def format_call(name: str, args: dict[str, Any]) -> str:
+    shown = ", ".join(f"{k}={v}" for k, v in args.items() if v not in (None, ""))
+    return f"{name}({shown})"
+
+
+_HOST_PORT = re.compile(r"\b([a-z][a-z0-9-]{0,62}):(\d{2,5})\b")
+MAX_DEPENDENCIES = 2
+
+
+def dependencies_in_logs(evidence: list[Evidence], service: str) -> list[str]:
+    """Service names that appear as host:port in log evidence (not the service itself)."""
+    hosts: list[str] = []
+    for item in evidence:
+        if item.tool != "get_pod_logs" or item.error:
+            continue
+        for match in _HOST_PORT.finditer(f"{item.summary}\n{item.excerpt}"):
+            host = match.group(1)
+            if host not in hosts and host not in (service, "localhost"):
+                hosts.append(host)
+    return hosts[:MAX_DEPENDENCIES]
+
+
+def suggest_next_calls(
+    evidence: list[Evidence], namespace: str, service: str, seen: set[str]
+) -> list[tuple[str, dict[str, Any]]]:
+    """Generic next steps an SRE would take, given what is known so far (never repeats)."""
+    candidates: list[tuple[str, dict[str, Any]]] = []
+    if not any(e.tool == "list_pods" and not e.error for e in evidence):
+        candidates.append(("list_pods", {"namespace": namespace}))
+    # Services named in error logs (host:port): a caller fails when its dependency is down.
+    for host in dependencies_in_logs(evidence, service):
+        candidates.append(("get_service_endpoints", {"namespace": namespace, "name": host}))
+    # The affected service first, then pods that crashed: callers of a broken service are
+    # often unready too, but they are a symptom.
+    pods = sorted(
+        pods_from_evidence(evidence),
+        key=lambda p: (not p.name.startswith(f"{service}-"), not p.restarted),
+    )
+    for pod in pods:
+        if pod.unhealthy:
+            candidates.append(("describe_pod", {"namespace": namespace, "name": pod.name}))
+            log_args: dict[str, Any] = {"namespace": namespace, "name": pod.name}
+            if pod.restarted:
+                log_args["previous"] = True
+            candidates.append(("get_pod_logs", log_args))
+    candidates += [
+        ("get_deployment", {"namespace": namespace, "name": service}),
+        ("get_rollout_history", {"namespace": namespace, "name": service}),
+        ("get_events", {"namespace": namespace}),
+    ]
+    # A call that already succeeded on the same object with other options counts as done.
+    done = {(e.tool, _target(e.args)) for e in evidence if not e.error}
+    out = [
+        (n, a) for n, a in candidates if call_key(n, a) not in seen and (n, _target(a)) not in done
+    ]
+    return out[:MAX_SUGGESTIONS]
+
+
+def _target(args: dict[str, Any]) -> str | None:
+    """The object a read call is about (None for namespace-wide calls)."""
+    return args.get("name") or args.get("involved_object_name")
+
+
+def tool_catalog(specs: list[dict[str, Any]]) -> str:
+    """Compact text list of the tools and their parameters for the prompt."""
+    lines = []
+    for spec in specs:
+        fn = spec["function"]
+        props = fn.get("parameters", {}).get("properties", {})
+        required = set(fn.get("parameters", {}).get("required", []))
+        params = ", ".join(f"{name}{'' if name in required else '?'}" for name in props)
+        lines.append(f"- {fn['name']}({params}): {fn.get('description', '')}")
+    return "\n".join(lines)
+
+
+def decision_model(names: list[str]) -> type[BaseModel]:
+    """Schema for one investigation step; the tool name is limited to the real tools."""
+    return create_model(
+        "NextStep",
+        tool=(Literal[tuple(names)], Field(description="The tool to call next.")),
+        args=(dict[str, Any], Field(default_factory=dict, description="Arguments for the tool.")),
+        reason=(str, Field(default="", max_length=300)),
+    )
+
+
+async def _next_call_json(
+    deps: AgentDeps, decision: type[BaseModel], text: str, metrics: Any, timeout: float
+) -> tuple[str, dict[str, Any]] | None:
+    """Constrained-JSON step: the grammar forces an answer straight away (no long thinking)."""
+    try:
+        step = await astructured(
+            deps.llm("select_tool"),
+            decision,
+            [HumanMessage(text)],
+            metrics,
+            max_repairs=1,
+            timeout_s=timeout,
+        )
+    except StructuredOutputError:
+        return None
+    return str(step.tool), dict(step.args)  # type: ignore[attr-defined]
+
+
+async def _next_call_native(
+    model: Any, text: str, metrics: Any, timeout: float
+) -> tuple[str, dict[str, Any]] | None:
+    """Native tool calling (for models that do not reason at length before each call)."""
+    reply = await asyncio.wait_for(model.ainvoke([HumanMessage(text)]), timeout)
+    metrics.add_usage(getattr(reply, "usage_metadata", None))
+    tool_calls = reply.tool_calls if isinstance(reply, AIMessage) else []
+    if not tool_calls:
+        return None
+    return tool_calls[0]["name"], dict(tool_calls[0].get("args") or {})
+
+
 async def investigate(state: IncidentState, deps: AgentDeps) -> dict[str, Any]:
     """Tool loop: one tool per turn, evidence summaries in the prompt, hard budgets."""
     assert state.alert is not None
@@ -222,8 +346,12 @@ async def investigate(state: IncidentState, deps: AgentDeps) -> dict[str, Any]:
     template = prompt("investigate")
     deps.events.emit("prompt", node="investigate", version=template.version, sha256=template.sha256)
     specs = [*deps.toolbox.specs(INVESTIGATION_TOOLS), FINISH_SPEC]
-    model = deps.llm("investigate").bind_tools(specs)
-    allowed = {s["function"]["name"] for s in specs}
+    names = [s["function"]["name"] for s in specs]
+    allowed = set(names)
+    native = deps.settings.agent_tool_strategy == "native"
+    model = deps.llm("investigate").bind_tools(specs) if native else None
+    decision = decision_model(names)
+    catalog = tool_catalog(specs)
     metrics = state.metrics.model_copy()
     evidence = list(state.evidence)
     new_evidence: list[Evidence] = []
@@ -235,6 +363,10 @@ async def investigate(state: IncidentState, deps: AgentDeps) -> dict[str, Any]:
     max_turns = deps.budgets.tool_calls + 3  # extra turns absorb blocked or malformed calls
     hints = untrusted("runbook_hints", "\n\n".join(state.hints)) if state.hints else "(none)"
 
+    made: list[str] = []
+    repeats = 0
+    namespace, service = state.triage.namespace, state.triage.service
+
     for _turn in range(max_turns):
         if calls >= deps.budgets.tool_calls:
             notes.append("tool budget reached")
@@ -242,6 +374,7 @@ async def investigate(state: IncidentState, deps: AgentDeps) -> dict[str, Any]:
         if deps.remaining(state.started_at) < deps.budgets.llm_timeout_s / 3:
             errors.append("investigation stopped early: run time budget nearly used")
             break
+        suggestions = suggest_next_calls(evidence, namespace, service, seen)
         evidence_text = evidence_block(evidence)
         if notes:
             evidence_text += "\nNotes: " + " ".join(notes[-2:])
@@ -250,23 +383,26 @@ async def investigate(state: IncidentState, deps: AgentDeps) -> dict[str, Any]:
             triage=compact_json(state.triage),
             hints=hints,
             evidence=evidence_text,
+            calls_made=", ".join(made) or "(none yet)",
+            suggestions="\n".join(f"- {format_call(n, a)}" for n, a in suggestions) or "(none)",
             budget_left=str(deps.budgets.tool_calls - calls),
-            namespace=state.triage.namespace,
+            namespace=namespace,
+            tools=catalog,
         )
+        timeout = deps.timeout(state.started_at)
         try:
-            reply = await asyncio.wait_for(
-                model.ainvoke([HumanMessage(text)]), deps.timeout(state.started_at)
+            chosen = (
+                await _next_call_native(model, text, metrics, timeout)
+                if native
+                else await _next_call_json(deps, decision, text, metrics, timeout)
             )
         except TimeoutError:
             errors.append("investigate: model call timed out")
             break
-        metrics.add_usage(getattr(reply, "usage_metadata", None))
-        tool_calls = reply.tool_calls if isinstance(reply, AIMessage) else []
-        if not tool_calls:
+        if chosen is None:
             notes.append("Your last reply had no tool call; call a tool or finish_investigation.")
             continue
-        call = tool_calls[0]
-        name, args = call["name"], dict(call.get("args") or {})
+        name, args = chosen
         if name == FINISH:
             deps.events.emit("investigation_finished", reason=str(args.get("reason", ""))[:200])
             break
@@ -275,10 +411,19 @@ async def investigate(state: IncidentState, deps: AgentDeps) -> dict[str, Any]:
             continue
         key = call_key(name, args)
         if key in seen:
-            notes.append(f"Blocked: {name} was already called with these arguments.")
+            repeats += 1
+            notes.append(f"Blocked: {format_call(name, args)} was already called.")
             deps.events.emit("tool_blocked", tool=name, args=args)
-            continue
+            if repeats < REPEATS_BEFORE_FALLBACK or not suggestions:
+                continue
+            # A small model at temperature 0 can get stuck on one call: take the top
+            # suggestion instead (always a read-only call within the same budget).
+            name, args = suggestions[0]
+            key = call_key(name, args)
+            deps.events.emit("tool_auto", tool=name, args=args, reason="repeated blocked call")
+        repeats = 0
         seen.add(key)
+        made.append(format_call(name, args))
         output = await deps.toolbox.call(name, args)
         calls += 1
         metrics.tool_calls += 1

@@ -75,7 +75,13 @@ class ScriptedChatModel(BaseChatModel):
         return RunnableLambda(run)
 
 
-def tool_call(name: str, args: dict[str, Any], call_id: str = "c1") -> AIMessage:
+def tool_call(name: str, args: dict[str, Any]) -> dict[str, Any]:
+    """One investigation step as the default (constrained JSON) strategy returns it."""
+    return {"tool": name, "args": args, "reason": "next step"}
+
+
+def native_call(name: str, args: dict[str, Any], call_id: str = "c1") -> AIMessage:
+    """One investigation step as a native tool call."""
     return AIMessage(content="", tool_calls=[{"name": name, "args": args, "id": call_id}])
 
 
