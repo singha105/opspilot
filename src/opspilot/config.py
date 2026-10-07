@@ -24,8 +24,13 @@ class Settings(BaseSettings):
     log_level: LogLevel = "INFO"
     log_json: bool = True
 
+    llm_provider: Literal["ollama"] = "ollama"
     llm_model: str = "qwen3:4b"
     ollama_base_url: str = "http://localhost:11434"
+    llm_seed: int = 42
+    llm_num_ctx: int = 8192
+    # Long enough to stay loaded through one run, short enough to free ~3 GB on an 8 GB Mac.
+    llm_keep_alive: str = "5m"
 
     weaviate_url: str = "http://localhost:8090"
     weaviate_grpc_port: int = 50052

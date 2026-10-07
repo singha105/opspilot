@@ -15,6 +15,7 @@ dependencies = [
     "httpx>=0.28.1",
     "kubernetes>=36.0.3",
     "langchain-mcp-adapters>=0.3.2",
+    "langchain-ollama>=1.1.0",
     "mcp>=1.30.0",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
@@ -80,7 +81,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "demo/app/tests"]
-pythonpath = ["demo/app"]
+pythonpath = ["demo/app", "tests/unit"]
 addopts = "-ra --strict-markers --import-mode=importlib"
 markers = [
     "integration: needs the k3d cluster, Docker or other local services",
