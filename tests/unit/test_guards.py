@@ -7,9 +7,11 @@ from opspilot.agent.guards import (
     citation_problems,
     detect_injection,
     escalation_reason,
+    normalize_refs,
+    pods_contradict,
 )
 from opspilot.models import RootCauseCategory as C
-from opspilot.models.incident import Diagnosis
+from opspilot.models.incident import Diagnosis, Evidence
 
 
 def diag(**kw: object) -> Diagnosis:
@@ -135,3 +137,45 @@ def test_documents_only_count_instruction_style_patterns() -> None:
         "ignore_previous",
         "addressed_to_ai",
     }
+
+
+def _pods(excerpt: str) -> list[Evidence]:
+    return [Evidence(id="E3", tool="list_pods", summary="s", excerpt=excerpt)]
+
+
+@pytest.mark.parametrize(
+    ("excerpt", "category", "contradicted"),
+    [
+        ("web-1 1/1 Running restarts=0", "OOM_KILLED", True),
+        ("web-1 1/1 Running restarts=2 last=OOMKilled", "OOM_KILLED", False),
+        ("web-1 0/1 Running restarts=0", "READINESS_PROBE_MISCONFIG", False),
+        ("web-1 1/1 Running restarts=0", "SERVICE_MISCONFIG", False),  # pods may be fine
+        ("db-1 1/1 Running restarts=0", "DEPENDENCY_UNAVAILABLE", False),  # no web pods seen
+    ],
+)
+def test_pods_contradict(excerpt: str, category: str, contradicted: bool) -> None:
+    d = Diagnosis(
+        root_cause_category=category,
+        component="web",
+        summary="s [E3]",
+        evidence_refs=["E3"],
+        confidence=0.9,
+    )
+    reason = pods_contradict(d, _pods(excerpt))
+    assert (reason is not None) is contradicted
+    if reason:
+        assert "all ready and never restarted [E3]" in reason
+
+
+def test_normalize_refs_moves_ids_to_their_fields() -> None:
+    d = Diagnosis(
+        root_cause_category="OOM_KILLED",
+        component="web",
+        summary="s",
+        evidence_refs=["E1", "R2"],
+        runbook_refs=["E3", "R2"],
+        confidence=0.9,
+    )
+    fixed = normalize_refs(d)
+    assert (fixed.evidence_refs, fixed.runbook_refs) == (["E1", "E3"], ["R2"])
+    assert normalize_refs(fixed) is fixed

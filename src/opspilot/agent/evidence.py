@@ -8,7 +8,9 @@ import json
 import re
 from collections import Counter
 from collections.abc import Callable
-from typing import Any
+from typing import Any, NamedTuple
+
+from opspilot.models.incident import Evidence
 
 SUMMARY_MAX = 300
 EXCERPT_MAX = 800
@@ -251,3 +253,33 @@ def summarize(tool: str, args: dict[str, Any], output: str) -> tuple[str, str, b
     if data.get("truncated"):
         excerpt += "\n(output was truncated by the server)"
     return _clip(summary, SUMMARY_MAX), _clip(excerpt, EXCERPT_MAX), False
+
+
+class PodHealth(NamedTuple):
+    """One pod as seen in a list_pods excerpt, with the evidence id it came from."""
+
+    name: str
+    unhealthy: bool
+    restarted: bool
+    evidence_id: str
+
+
+def pods_from_evidence(evidence: list[Evidence]) -> list[PodHealth]:
+    """Pods from successful list_pods excerpts ('name ready phase restarts=N ...'); latest wins."""
+    pods: dict[str, PodHealth] = {}
+    for item in evidence:
+        if item.tool != "list_pods" or item.error:
+            continue
+        for line in item.excerpt.splitlines():
+            parts = line.split()
+            if len(parts) < 4 or "/" not in parts[1] or not parts[3].startswith("restarts="):
+                continue
+            ready, total = parts[1].split("/", 1)
+            restarts = int(parts[3].removeprefix("restarts=") or 0)
+            pods[parts[0]] = PodHealth(
+                parts[0],
+                unhealthy=ready != total or "reason=" in line,
+                restarted=restarts > 0 or "last=" in line,
+                evidence_id=item.id,
+            )
+    return list(pods.values())

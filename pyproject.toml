@@ -16,6 +16,7 @@ dependencies = [
     "kubernetes>=36.0.3",
     "langchain-mcp-adapters>=0.3.2",
     "langchain-ollama>=1.1.0",
+    "langgraph>=1.2.14",
     "mcp>=1.30.0",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",

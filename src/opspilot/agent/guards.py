@@ -10,14 +10,25 @@ import ipaddress
 import re
 from urllib.parse import urlparse
 
+from opspilot.agent.evidence import pods_from_evidence
 from opspilot.agent.state import SecurityFlag
 from opspilot.models import ActionName, RootCauseCategory
-from opspilot.models.incident import Diagnosis
+from opspilot.models.incident import Diagnosis, Evidence
 
 CONFIDENCE_THRESHOLD = 0.5
 _INLINE_REF = re.compile(r"\[([ER]\d+)\]")
 
 # ---- citations --------------------------------------------------------------------------
+
+
+def normalize_refs(diagnosis: Diagnosis) -> Diagnosis:
+    """Put E-ids in evidence_refs and R-ids in runbook_refs (small models mix the fields)."""
+    refs = list(dict.fromkeys(diagnosis.evidence_refs + diagnosis.runbook_refs))
+    evidence = [r for r in refs if not r.startswith("R")]
+    runbooks = [r for r in refs if r.startswith("R")]
+    if evidence == diagnosis.evidence_refs and runbooks == diagnosis.runbook_refs:
+        return diagnosis
+    return diagnosis.model_copy(update={"evidence_refs": evidence, "runbook_refs": runbooks})
 
 
 def citation_problems(
@@ -167,6 +178,30 @@ def check_action_allowed(
 
 
 # ---- escalation ---------------------------------------------------------------------------
+
+
+# Categories whose fault shows on the component's own pods (not ready, or restarting).
+# Excluded: faults that leave pods healthy (a Service selector, a bad release that still
+# passes its probes) and UNKNOWN.
+HEALTHY_PODS_POSSIBLE = {
+    RootCauseCategory.SERVICE_MISCONFIG,
+    RootCauseCategory.BAD_ROLLOUT,
+    RootCauseCategory.UNKNOWN,
+}
+
+
+def pods_contradict(diagnosis: Diagnosis, evidence: list[Evidence]) -> str | None:
+    """Why the evidence contradicts the diagnosis: its component's pods are all healthy."""
+    if diagnosis.root_cause_category in HEALTHY_PODS_POSSIBLE:
+        return None
+    pods = [p for p in pods_from_evidence(evidence) if p.name.startswith(f"{diagnosis.component}-")]
+    if not pods or any(p.unhealthy or p.restarted for p in pods):
+        return None
+    cited = ", ".join(sorted({f"[{p.evidence_id}]" for p in pods}))
+    return (
+        f"{diagnosis.component} has {len(pods)} pod(s), all ready and never restarted {cited}; "
+        f"a {diagnosis.root_cause_category.value} fault in {diagnosis.component} would show there"
+    )
 
 
 def escalation_reason(diagnosis: Diagnosis, threshold: float = CONFIDENCE_THRESHOLD) -> str | None:

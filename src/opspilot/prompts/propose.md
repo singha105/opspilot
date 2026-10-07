@@ -8,15 +8,16 @@ Diagnosis: {{diagnosis}}
 
 {{evidence_items}}
 
-Allowed automated actions for this category (nothing else can be executed):
+Allowed automated actions for this category, with defaults computed from the cluster state
+(nothing else can be executed):
 {{allowed_actions}}
 
 ## Instructions
 1. If an allowed action fixes the root cause, choose it and fill its parameters:
    `deployment` is the Deployment to change, `container` the container name (usually
-   `app`). For memory, choose a `memory_limit` comfortably above the observed need and at
-   most 512Mi. For images, use only an image listed in the evidence's rollout history that
-   ran healthily.
+   `app`). Use the listed defaults unless the evidence shows a better value: for memory,
+   a `memory_limit` comfortably above the memory the process is seen to need (at most
+   512Mi); for images, only an image from the rollout history that ran healthily.
 2. If no allowed action applies, set `action_type` to `manual_change` and write the exact
    manifest change a human should make in `manual_change` (field path and value).
 3. `rationale`: one or two sentences, citing E-ids.

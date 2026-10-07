@@ -1,6 +1,5 @@
 """Dependencies shared by every node of one run (injected, so tests can fake them)."""
 
-import datetime as dt
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -44,8 +43,6 @@ class AgentDeps:
     settings: Settings = field(default_factory=get_settings)
     events: EventSink = field(default_factory=NullEvents)
     budgets: Budgets = field(default_factory=Budgets)
-    # "Now" for judging how recent a rollout is: the wall clock live, recording time in replay.
-    reference_time: Callable[[], dt.datetime] = lambda: dt.datetime.now(dt.UTC)
     actions: ToolBox | None = None  # the gated actions server; only set for live runs
     report_dir: Path = Path("runs")
     clock: Callable[[], float] = time.monotonic
