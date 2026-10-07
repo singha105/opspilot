@@ -29,7 +29,7 @@ $0 on an 8 GB laptop.
 - **Evals:** 30 fault scenarios injected into a demo app, scored on root-cause
   accuracy, evidence quality and remediation choice.
 
-## Status: Day 2 of 6
+## Status: Day 3 of 6
 
 | Area | State |
 |---|---|
@@ -39,7 +39,8 @@ $0 on an 8 GB laptop.
 | Read-only reader / narrow operator RBAC | done, proven by tests |
 | Fault injection framework | done, 5 of 30 scenarios |
 | Knowledge base (52 docs) + hybrid RAG | done, measured on 60 queries |
-| MCP servers | Day 3 |
+| MCP servers (k8s read-only, kb, gated actions) | done, with approval tokens |
+| Record/replay fixtures | done, 6 fixtures |
 | LangGraph agent + human approval | Day 4 |
 | Full eval suite + safety tests | Day 5 |
 | API, UI, docs, v1.0.0 | Day 6 |
@@ -49,6 +50,13 @@ section-aware chunks) reaches nDCG@5 0.817 and Recall@5 0.933 at 42 ms p95. Addi
 FlashRank reranking raises nDCG@5 to 0.852, but costs over a second per query on this
 laptop, so it is opt-in. Dense-only search scores 0.672. Details in
 [docs/rag.md](docs/rag.md) and [ADR-0004](docs/adr/0004-retrieval-defaults.md).
+
+**Tools, gated.** The agent sees the cluster through 11 read-only MCP tools and the
+knowledge base through 2 more. Changing anything means calling a separate actions server
+that dry-runs the change and executes it only with a human-approved, single-use token
+bound to that exact action. Every call is redacted, size-capped and audited. Six recorded
+fixtures let agent evals replay real incidents without a cluster. See
+[docs/mcp.md](docs/mcp.md) and [docs/security.md](docs/security.md).
 
 Progress notes: [docs/PROGRESS.md](docs/PROGRESS.md). Design decisions:
 [docs/adr/](docs/adr/).
@@ -77,6 +85,10 @@ uv run opspilot kb ingest        # chunk, embed and index the knowledge base
 uv run opspilot kb search "payments pods restart with exit code 137"
 uv run opspilot eval retrieval --configs all
 
+uv run opspilot faults record --all            # record replay fixtures (cluster needed)
+uv run python scripts/mcp_smoke.py --mode replay --fixture evals/fixtures/oom-payments.json
+npx @modelcontextprotocol/inspector uv run opspilot-k8s
+
 make down-all                    # stop the cluster, containers and the Ollama model
 ```
 
@@ -85,11 +97,11 @@ make down-all                    # stop the cluster, containers and the Ollama m
 ## Repository layout
 
 ```
-src/opspilot/   package: config, logging, CLI, models, faults, rag, evals (agent, MCP to come)
+src/opspilot/   package: config, logging, CLI, models, faults, rag, evals, mcp_servers, tools
 demo/           Shopfront demo service (app/) and kustomize manifests (k8s/)
 faults/         fault scenario definitions with ground-truth root causes
 knowledge/      runbooks, postmortems, service cards and Kubernetes docs
-evals/          retrieval queries, results and reports
+evals/          retrieval queries and results, recorded MCP fixtures
 infra/          docker-compose (Weaviate, Phoenix), k3d cluster config, RBAC
 docs/           progress log and architecture decision records
 tests/          unit tests (no cluster) and integration tests (cluster)

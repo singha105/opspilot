@@ -1,5 +1,64 @@
 # Progress
 
+## Day 3 — MCP servers and record/replay (2026-10-07)
+
+**Done:**
+- `mcp_servers/common`: explicit-kubeconfig clients, namespace allowlist, redaction (7
+  pattern families), a 6,000-character cap with a truncation marker and hint, structured
+  errors, 10 s timeouts, and a JSONL audit log (`runs/audit.jsonl`) for every call,
+  including rejections.
+- `opspilot-k8s`: 11 read-only tools with Pydantic output models and prompt-style
+  descriptions (25–41 words each, every one with an example call). No write tool exists.
+- `opspilot-kb`: `search_knowledge` and `get_document` over the Day 2 retriever (ADR-0004
+  defaults), returning citation-ready chunks.
+- `opspilot-actions`: `plan_action` (dryRun=All, diff, risk notes, action hash) and
+  `execute_action` gated by HMAC approval tokens from `agent/approval.py` (≤ 10 min,
+  single use, bound to the action hash). Five allowlisted actions with server-side bounds.
+- Record/replay: `opspilot faults record <id> | --all` and `opspilot-k8s --mode replay`.
+  Six fixtures were recorded from the cluster: the 5 scenarios plus a `healthy` baseline.
+- `opspilot.tools`: LangChain tools through `langchain-mcp-adapters` (k8s + kb by default,
+  actions only on request and never in replay), and `scripts/mcp_smoke.py`.
+- Both read servers were verified with MCP Inspector 2.9.0 (CLI mode): tool list,
+  calls, and a rejected out-of-range argument.
+
+**Decisions:**
+- [ADR-0006](adr/0006-mcp-server-split.md): three servers split by privilege.
+- [ADR-0007](adr/0007-approval-tokens.md): single-use HMAC approval tokens and
+  server-side bounds.
+- [ADR-0008](adr/0008-record-replay-evals.md): exhaustive recording through the
+  production tool path; replay with safe derivations only.
+
+**Metrics:**
+- Live k8s tool latency over 314 audited calls today: p50 4.3 ms, p95 87 ms (slowest:
+  `list_pvcs`/`list_nodes` around 45 ms p50). Replayed calls: p50 0.1 ms.
+- Output size: p50 662 characters, largest 5,985 (cap 6,000); 3 of 43 calls per fixture
+  are truncated (long logs) and carry the narrowing hint.
+- Fixtures: 39–43 calls and 61–67 KB each. Recording all six took 3 min 27 s.
+- Tests: 203 unit tests passed, 81% line coverage of `src/opspilot` (`make test`). The
+  integration tests for MCP live tools, 403 handling, a stdio session, actions planning
+  and a token-gated execution all pass.
+
+**Known issues / debt:**
+- FastMCP validates argument types before our code runs, so bounds are advertised in
+  the schema but enforced in the audited path (otherwise rejections went unlogged;
+  found with the Inspector).
+- kubernetes client 36: `read_namespaced_pod_log` returns a bytes repr unless called with
+  `_preload_content=False`; exec probes are on `V1Probe._exec`; a dict PATCH body
+  defaults to json-patch, so strategic-merge patches pass `_content_type` explicitly.
+- `langchain-mcp-adapters` 0.3 returns tool content as a list of blocks; `tool_text()`
+  normalizes it.
+- The operator Role cannot read ReplicaSets, so rollback and image-history checks read
+  through the reader identity. Neither Role was widened.
+- The approver name in a token is self-asserted (no SSO on a single host).
+- The healthy fixture contains older "Unhealthy" warning events from earlier tests.
+  That is realistic noise and was kept.
+- The package version stayed at 0.1.0 through the v0.2.0 tag; it is 0.3.0 from today.
+
+**Next:**
+- LangGraph agent: triage, retrieve, investigate, diagnose, propose, human approval
+  (`interrupt()`), act, verify, report, with a SQLite checkpointer.
+
+
 ## Day 2 — Knowledge base and hybrid RAG (2026-10-05)
 
 **Done:**

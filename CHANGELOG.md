@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-07
+
+### Added
+- `opspilot-k8s`: read-only Kubernetes MCP server with 11 tools, live and replay modes.
+- `opspilot-kb`: knowledge-base MCP server (`search_knowledge`, `get_document`).
+- `opspilot-actions`: gated remediation server with dry-run planning and execution
+  behind single-use HMAC approval tokens (`opspilot.agent.approval`).
+- Shared MCP layer: namespace allowlist, redaction, 6,000-character output cap,
+  structured errors, 10 s timeouts and a JSONL audit log.
+- `opspilot faults record` and six recorded fixtures (five scenarios plus healthy).
+- `opspilot.tools`: LangChain tools over the MCP servers; `scripts/mcp_smoke.py`.
+- `docs/mcp.md`, `docs/security.md`, ADR-0006, ADR-0007 and ADR-0008.
+
+### Fixed
+- The package version now matches the release (0.2.0 shipped with version 0.1.0).
+
 ## [0.2.0] - 2026-10-05
 
 ### Added
@@ -40,6 +56,7 @@ All notable changes to this project are documented here. The format follows
 - Unit and integration tests, pre-commit hooks and GitHub Actions CI.
 - ADRs 0001–0003, README and progress log.
 
-[Unreleased]: https://github.com/singha105/opspilot/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/singha105/opspilot/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/singha105/opspilot/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/singha105/opspilot/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/singha105/opspilot/releases/tag/v0.1.0
