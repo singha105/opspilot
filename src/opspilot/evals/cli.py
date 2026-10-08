@@ -104,3 +104,111 @@ def _smoke(queries: Path) -> None:
         console.print(f"[red]Recall@5 {result.recall_at_5:.3f} is below {floor:.3f}[/red]")
         raise typer.Exit(code=1)
     console.print(f"smoke OK: Recall@5 {result.recall_at_5:.3f} >= {floor:.3f}")
+
+
+SPLITS = EVAL_DIR / "agent" / "splits.yaml"
+Split = Literal["dev", "test", "control", "all"]
+
+
+def _mark(value: bool | None) -> str:
+    return "-" if value is None else ("ok" if value else "MISS")
+
+
+@app.command()
+def agent(
+    configs: Annotated[str, typer.Option(help="Comma list of C0..C4.")] = "C3",
+    split: Annotated[Split, typer.Option(help="dev, test, control or all.")] = "all",
+    limit: Annotated[int | None, typer.Option(help="Run only the first N cases.")] = None,
+    resume: Annotated[bool, typer.Option(help="Reuse cached outcomes with the same key.")] = False,
+    cases: Annotated[str | None, typer.Option(help="Comma list of case ids.")] = None,
+) -> None:
+    """Replay the agent on the scenario catalog and score it (concurrency 1)."""
+    from opspilot.evals.agent_eval import CONFIGS, AgentEval
+    from opspilot.evals.cases import load_cases
+    from opspilot.evals.scoring import EvalRow, proportion
+
+    settings = get_settings()
+    unknown = [c for c in configs.split(",") if c not in CONFIGS]
+    if unknown:
+        raise typer.BadParameter(f"unknown configs {unknown}; choose from {list(CONFIGS)}")
+    all_cases = load_cases(settings.scenarios_dir, SPLITS)
+    chosen = [c for c in all_cases.values() if split == "all" or c.split == split]
+    if cases:
+        wanted = cases.split(",")
+        chosen = [c for c in chosen if c.id in wanted]
+    chosen = chosen[:limit] if limit else chosen
+    runner = AgentEval(settings, Path.cwd(), EVAL_DIR / "results", resume=resume)
+    for name in configs.split(","):
+        config = CONFIGS[name]
+        console.print(f"[bold]{name}[/bold] {config.label}: {len(chosen)} cases")
+        done = 0
+
+        def show(row: EvalRow, cached: bool) -> None:
+            nonlocal done
+            done += 1
+            note = " (cached)" if cached else ""
+            console.print(
+                f"  [{done}/{len(chosen)}] {row.scenario_id}: {row.category_pred} "
+                f"category {_mark(row.category_correct)}, component "
+                f"{_mark(row.component_correct)}, remediation "
+                f"{_mark(row.remediation_acceptable)}, {row.latency_s:.0f}s{note}"
+            )
+
+        rows = runner.evaluate(chosen, config, on_row=show)
+        accuracy = proportion(rows, "category_correct")
+        console.print(
+            f"{name}: category {accuracy.text()} (95% CI {accuracy.ci_text()}) "
+            f"-> {runner.output_path(config)}"
+        )
+
+
+@app.command()
+def live(
+    cases: Annotated[
+        str | None, typer.Option(help="Comma list of case ids (default: the live subset).")
+    ] = None,
+) -> None:
+    """Run the live subset end to end on the demo cluster (inject, agent, approve, verify)."""
+    import asyncio
+
+    import yaml
+
+    from opspilot.evals.agent_eval import DEFAULT_CONFIG
+    from opspilot.evals.cases import load_cases
+    from opspilot.evals.live_eval import run_live_case
+    from opspilot.faults.injector import Injector
+    from opspilot.faults.scenario import load_scenarios
+    from opspilot.kube import admin_client
+
+    settings = get_settings()
+    all_cases = load_cases(settings.scenarios_dir, SPLITS)
+    ids = cases.split(",") if cases else yaml.safe_load(SPLITS.read_text())["live"]
+    scenarios = load_scenarios(settings.scenarios_dir)
+    injector = Injector(
+        admin_client(settings.admin_context),
+        context=settings.admin_context,
+        base_dir=settings.demo_base_dir,
+    )
+    out = EVAL_DIR / "results" / f"live-{dt.date.today().isoformat()}.jsonl"
+    rows = []
+    for case_id in ids:
+        console.print(f"[bold]{case_id}[/bold]: injecting")
+        row = asyncio.run(
+            run_live_case(
+                all_cases[case_id],
+                scenarios[case_id],
+                injector,
+                settings,
+                DEFAULT_CONFIG,
+                settings.runs_dir / "eval-live",
+            )
+        )
+        rows.append(row)
+        out.write_text("".join(r.model_dump_json() + "\n" for r in rows))
+        console.print(
+            f"  {row.category_pred} (category {_mark(row.category_correct)}), "
+            f"{row.decision or 'no decision'}: {row.decision_reason}; verification "
+            f"{row.verification}; {row.agent_s:.0f}s"
+        )
+    recovered = sum(r.recovered for r in rows)
+    console.print(f"recovered {recovered}/{len(rows)} -> {out}")
