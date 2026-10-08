@@ -11,9 +11,11 @@ from pydantic import BaseModel, Field, create_model
 from opspilot.agent.deps import AgentDeps
 from opspilot.agent.evidence import (
     SUMMARY_MAX,
+    failure_signals,
     notable_log_lines,
     pods_from_evidence,
     summarize,
+    top_error_line,
 )
 from opspilot.agent.guards import detect_injection
 from opspilot.agent.nodes.common import (
@@ -456,3 +458,63 @@ async def investigate(state: IncidentState, deps: AgentDeps) -> dict[str, Any]:
         new_evidence.append(item)
 
     return {"evidence": new_evidence, "security_flags": flags, "errors": errors, "metrics": metrics}
+
+
+# ---- refine_retrieval ------------------------------------------------------------------------
+
+MAX_NEW_CHUNKS = 3
+
+
+def evidence_queries(state: IncidentState) -> list[str]:
+    """Knowledge-base queries built from what the investigation found (empty if nothing)."""
+    service = state.triage.service if state.triage else ""
+    signals = failure_signals(state.evidence, focus=service or None)
+    error = top_error_line(state.evidence)
+    queries = [f"{service} {' '.join(signals)}".strip()] if signals else []
+    if error:
+        queries.append(error)
+    return queries
+
+
+async def refine_retrieval(state: IncidentState, deps: AgentDeps) -> dict[str, Any]:
+    """Search the knowledge base again with the investigation's failure signals.
+
+    Retrieval before the investigation only has the alert to go on; the evidence names the
+    failure (an OOM kill, a scheduling reason, a missing ConfigMap), so a second search adds
+    up to three new chunks, numbered after the existing ones.
+    """
+    if not state.use_rag or deps.retriever is None:
+        return {}
+    queries = evidence_queries(state)
+    if not queries:
+        return {}
+    try:
+        retriever = deps.retriever()
+        try:
+            result = await asyncio.to_thread(
+                retriever.retrieve,
+                queries,
+                deps.settings.retrieval_k,
+                mode=deps.settings.retrieval_mode,
+                rerank=deps.settings.agent_rerank,
+            )
+        finally:
+            close = getattr(getattr(retriever, "store", None), "close", None)
+            if callable(close):
+                close()
+    except Exception as exc:  # optional, like the first retrieval
+        deps.events.emit("retrieval_failed", error=type(exc).__name__)
+        return {"errors": [f"refine_retrieval: {type(exc).__name__}"]}
+    known = {c.chunk_id for c in state.retrieved}
+    fresh = [c for c in result.chunks if c.chunk_id not in known][:MAX_NEW_CHUNKS]
+    start = len(state.retrieved) + 1
+    added = [c.model_copy(update={"citation_id": f"R{start + i}"}) for i, c in enumerate(fresh)]
+    flags = [
+        flag
+        for chunk in added
+        for flag in detect_injection(chunk.text, f"kb:{chunk.doc_id}", document=True)
+    ]
+    deps.events.emit(
+        "retrieval", stage="refine", queries=queries, doc_ids=[c.doc_id for c in added]
+    )
+    return {"retrieved": [*state.retrieved, *added], "security_flags": flags}

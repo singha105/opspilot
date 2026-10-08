@@ -33,6 +33,7 @@ NODES: list[tuple[str, Node]] = [
     ("triage", inv.triage),
     ("retrieve", inv.retrieve),
     ("investigate", inv.investigate),
+    ("refine_retrieval", inv.refine_retrieval),
     ("diagnose", res.diagnose),
     ("propose_remediation", res.propose_remediation),
     ("human_approval", res.human_approval),
@@ -91,7 +92,8 @@ def build_graph(
     graph.add_edge("ingest_alert", "triage")
     graph.add_edge("triage", "retrieve")
     graph.add_edge("retrieve", "investigate")
-    graph.add_edge("investigate", "diagnose")
+    graph.add_edge("investigate", "refine_retrieval")
+    graph.add_edge("refine_retrieval", "diagnose")
     graph.add_conditional_edges("diagnose", after_diagnose, ["report", "propose_remediation"])
     graph.add_conditional_edges("propose_remediation", after_propose, ["human_approval", "report"])
     graph.add_conditional_edges("human_approval", after_approval, ["execute", "report"])

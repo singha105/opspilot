@@ -21,7 +21,8 @@ flowchart TD
     A[ingest_alert] --> B[triage]
     B --> C[retrieve]
     C --> D[investigate]
-    D --> E[diagnose]
+    D --> D2[refine_retrieval]
+    D2 --> E[diagnose]
     E -->|escalated: UNKNOWN, low confidence,<br/>uncited or invalid output| R[report]
     E -->|diagnosis| F[propose_remediation]
     F -->|manual change or nothing to do| R
@@ -37,8 +38,9 @@ flowchart TD
 |---|---|---|
 | `ingest_alert` | no | Normalizes Alertmanager JSON, a plain dict or free text into an `Alert`; scans it for prompt injection. |
 | `triage` | yes | Affected service and namespace, symptom, 1-3 candidate categories, 2-3 search queries. Falls back to the alert labels if the output is unusable. |
-| `retrieve` | no | Hybrid RAG over the knowledge base (top 6 chunks) and the runbooks' quick checks as hints. Retrieved text is scanned for injection. |
+| `retrieve` | no | Hybrid RAG with reranking over the knowledge base (top 6 chunks) and the runbooks' quick checks as hints. Retrieved text is scanned for injection. |
 | `investigate` | yes | Bounded loop over the read-only MCP tools: one call per turn, at most 8 calls. |
+| `refine_retrieval` | no | Searches the knowledge base again with what the evidence names (failure reasons, probe failures, a Service without endpoints, a new image, the top error log line) and adds up to 3 new chunks. |
 | `diagnose` | yes | `Diagnosis` with category, component, summary, confidence, alternatives, and citations of evidence (`E1..`) and sources (`R1..`). |
 | `propose_remediation` | yes | Picks parameters for an action the guards allow, or writes a manual change. Live mode adds a server-side dry run. |
 | `human_approval` | no | `interrupt()`: the run is checkpointed and waits for an `ApprovalDecision`. |

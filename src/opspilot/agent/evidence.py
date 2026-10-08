@@ -283,3 +283,87 @@ def pods_from_evidence(evidence: list[Evidence]) -> list[PodHealth]:
                 evidence_id=item.id,
             )
     return list(pods.values())
+
+
+# Kubernetes failure vocabulary: reasons and phrases that name a class of fault. Generic
+# to Kubernetes, so they are safe to search the knowledge base with.
+FAILURE_TERMS = (
+    "OOMKilled",
+    "CrashLoopBackOff",
+    "ImagePullBackOff",
+    "ErrImagePull",
+    "CreateContainerConfigError",
+    "CreateContainerError",
+    "RunContainerError",
+    "StartError",
+    "ContainerCannotRun",
+    "Init:Error",
+    "Init:CrashLoopBackOff",
+    "FailedScheduling",
+    "Unschedulable",
+    "Insufficient cpu",
+    "Insufficient memory",
+    "node affinity",
+    "node selector",
+    "ProvisioningFailed",
+    "FailedMount",
+    "unbound immediate PersistentVolumeClaims",
+    "Liveness probe failed",
+    "Readiness probe failed",
+    "Back-off restarting failed container",
+    "not found",
+    "connection refused",
+    "Traceback",
+    "exit 137",
+)
+MAX_SIGNALS = 8
+
+
+def _focused_text(evidence: list[Evidence], focus: str | None) -> str:
+    """Evidence text about ``focus`` only: calls on its objects, or lines that name it.
+
+    Namespace-wide calls (all pods, all events) also describe unrelated pods, whose old
+    warnings would otherwise steer the search.
+    """
+    parts = []
+    for item in evidence:
+        if item.error:
+            continue
+        text = f"{item.summary}\n{item.excerpt}"
+        target = str(item.args.get("name") or item.args.get("involved_object_name") or "")
+        if focus is None or target.startswith(focus):
+            parts.append(text)
+        else:
+            parts.extend(line for line in text.splitlines() if focus in line)
+    return "\n".join(parts)
+
+
+def failure_signals(evidence: list[Evidence], focus: str | None = None) -> list[str]:
+    """Failure terms in the evidence (about ``focus`` when given), plus cross-evidence facts,
+    in order of discovery."""
+    lowered = _focused_text(evidence, focus).lower()
+    found = sorted(
+        (lowered.find(term.lower()), term) for term in FAILURE_TERMS if term.lower() in lowered
+    )
+    signals = [term for _, term in found]
+    if any(e.tool == "get_service_endpoints" and ": 0 ready" in e.summary for e in evidence):
+        signals.append("Service has no ready endpoints")
+    if any(e.tool == "get_rollout_history" and "Image changed" in e.summary for e in evidence):
+        signals.append("new image in the latest rollout")
+    return signals[:MAX_SIGNALS]
+
+
+def top_error_line(evidence: list[Evidence], limit: int = 160) -> str | None:
+    """The first error-looking log line in the evidence, without JSON noise."""
+    for item in evidence:
+        if item.tool != "get_pod_logs" or item.error:
+            continue
+        for line in item.excerpt.splitlines():
+            if _NOTABLE.search(line):
+                try:
+                    record = json.loads(line)
+                    line = str(record.get("msg", "")) + " " + str(record.get("error", "") or "")
+                except (json.JSONDecodeError, AttributeError):
+                    pass
+                return line.strip()[:limit] or None
+    return None

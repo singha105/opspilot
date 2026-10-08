@@ -442,3 +442,102 @@ def test_toolbox_specs_match_the_mcp_servers(fixture: str, tmp_path: Path) -> No
     names = asyncio.run(go())
     assert len(names) == 12
     assert "search_knowledge" in names
+
+
+# ---- refine_retrieval --------------------------------------------------------------------------
+
+
+def _ev(i: int, tool: str, summary: str, excerpt: str = "", error: bool = False) -> Any:
+    from opspilot.models.incident import Evidence
+
+    return Evidence(id=f"E{i}", tool=tool, summary=summary, excerpt=excerpt, error=error)
+
+
+EVIDENCE_TRAIL = [
+    _ev(1, "list_pods", "4 pods, 1 unhealthy: payments-api-1 0/1 CreateContainerConfigError"),
+    _ev(
+        2, "get_events", "3 events", '1s Warning Failed Pod/payments-api-1: configmap "x" not found'
+    ),
+    _ev(3, "get_service_endpoints", "Service payments-api: 0 ready and 0 not-ready endpoints."),
+    _ev(4, "get_rollout_history", "payments-api: 2 revisions; Image changed from a:1."),
+    _ev(
+        5,
+        "get_pod_logs",
+        "s",
+        '{"level": "ERROR", "msg": "call to db failed", "error": "ConnectionRefusedError"}',
+    ),
+    _ev(6, "get_pod_logs", "failed", "OOMKilled everywhere", error=True),  # errors are ignored
+]
+
+
+def test_failure_signals_and_error_line() -> None:
+    from opspilot.agent.evidence import failure_signals, top_error_line
+
+    assert failure_signals(EVIDENCE_TRAIL) == [
+        "CreateContainerConfigError",
+        "not found",
+        "Service has no ready endpoints",
+        "new image in the latest rollout",
+    ]
+    assert top_error_line(EVIDENCE_TRAIL) == "call to db failed ConnectionRefusedError"
+    noisy = [
+        _ev(
+            1, "list_pods", "2 pods", "web-1 0/1 Pending\ndb-1 0/1 Running reason=CrashLoopBackOff"
+        ),
+        _ev(
+            2,
+            "get_events",
+            "2 events",
+            "Warning FailedScheduling Pod/web-1: Insufficient cpu\n"
+            "Warning Unhealthy Pod/db-1: Readiness probe failed",
+        ),
+        _ev(
+            3,
+            "describe_pod",
+            "db-1 OOMKilled",
+            "",
+        ),
+    ]
+    noisy[2] = noisy[2].model_copy(update={"args": {"name": "db-1"}})
+    assert failure_signals(noisy, focus="web") == ["FailedScheduling", "Insufficient cpu"]
+    assert "OOMKilled" in failure_signals(noisy)
+    traceback = _ev(1, "get_pod_logs", "s", "starting\nTraceback (most recent call last):")
+    assert top_error_line([traceback]) == "Traceback (most recent call last):"
+    assert failure_signals([]) == []
+
+
+def test_evidence_queries() -> None:
+    queries = inv.evidence_queries(state(evidence=EVIDENCE_TRAIL))
+    assert queries[0].startswith("payments-api CreateContainerConfigError not found")
+    assert queries[1] == "call to db failed ConnectionRefusedError"
+    assert inv.evidence_queries(state(evidence=[])) == []
+
+
+def test_refine_retrieval_adds_new_chunks_after_the_existing_ones() -> None:
+    first = StubRetriever(("rb-oom-killed",))
+    retrieved = asyncio.run(inv.retrieve(state(), deps(None, retriever=lambda: first)))["retrieved"]
+    second = StubRetriever(("rb-oom-killed", "rb-bad-rollout", "rb-missing-env-var"))
+    st = state(evidence=EVIDENCE_TRAIL, retrieved=retrieved)
+    out = asyncio.run(inv.refine_retrieval(st, deps(None, retriever=lambda: second)))
+    assert [(c.citation_id, c.doc_id) for c in out["retrieved"]] == [
+        ("R1", "rb-oom-killed"),
+        ("R2", "rb-bad-rollout"),
+        ("R3", "rb-missing-env-var"),
+    ]
+    assert second.queries[0][0].startswith("payments-api CreateContainerConfigError")
+
+
+def test_refine_retrieval_skips_without_rag_or_signals() -> None:
+    stub = StubRetriever()
+    d = deps(None, retriever=lambda: stub)
+    assert asyncio.run(inv.refine_retrieval(state(use_rag=False, evidence=EVIDENCE_TRAIL), d)) == {}
+    assert asyncio.run(inv.refine_retrieval(state(evidence=[]), d)) == {}
+    assert stub.queries == []
+
+    def down() -> Any:
+        raise ConnectionError("store down")
+
+    out = asyncio.run(
+        inv.refine_retrieval(state(evidence=EVIDENCE_TRAIL), deps(None, retriever=down))
+    )
+    assert out == {"errors": ["refine_retrieval: ConnectionError"]}
