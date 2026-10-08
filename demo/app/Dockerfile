@@ -1,7 +1,10 @@
 FROM python:3.12-slim
 
+# "stable" for the normal image; "v2-broken" builds the faulty release used by evals.
+ARG BUILD=stable
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    SHOPFRONT_BUILD=${BUILD}
 
 RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app
 WORKDIR /app

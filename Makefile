@@ -5,6 +5,7 @@ CLUSTER   := opspilot
 CTX       := k3d-$(CLUSTER)
 NS        := shop
 IMAGE     := opspilot-demo-svc:dev
+BROKEN_IMAGE := opspilot-demo-svc:v2-broken
 MODEL     ?= qwen3:4b
 COMPOSE   := docker compose -f infra/docker-compose.yml
 KUBECTL   := kubectl --context $(CTX)
@@ -61,9 +62,10 @@ cluster-down: ## Delete the k3d cluster
 
 ## ---- Demo app (Shopfront) ----------------------------------------------
 
-demo-build: ## Build the demo image and import it into k3d
+demo-build: ## Build the demo images (stable + v2-broken) and import them into k3d
 	docker build -t $(IMAGE) demo/app
-	k3d image import $(IMAGE) -c $(CLUSTER)
+	docker build --build-arg BUILD=v2-broken -t $(BROKEN_IMAGE) demo/app
+	k3d image import $(IMAGE) $(BROKEN_IMAGE) -c $(CLUSTER)
 
 demo-deploy: ## Apply the demo manifests and wait for every rollout
 	$(KUBECTL) apply -k demo/k8s/base
