@@ -213,7 +213,7 @@ def test_investigate_collects_evidence_from_replay(tmp_path: Path) -> None:
             tool_call("list_pods", {"namespace": "shop"}),
             tool_call("list_pods", {"namespace": "shop"}),  # duplicate: blocked
             tool_call("describe_pod", {"namespace": "shop", "name": pod}),
-            tool_call("get_pod_logs", {"namespace": "shop", "name": pod, "previous": True}),
+            tool_call("get_pod_logs", {"namespace": "shop", "name": pod}),
             tool_call("finish_investigation", {"reason": "OOMKilled at startup"}),
         ],
         tmp_path,
@@ -224,7 +224,7 @@ def test_investigate_collects_evidence_from_replay(tmp_path: Path) -> None:
     assert "OOMKilled" in evidence[0].summary
     assert "OOMKilled" in evidence[1].summary
     # Killed while allocating memory, before logging anything: the empty log is evidence too.
-    assert evidence[2].summary.startswith("0 log lines from previous container")
+    assert evidence[2].summary.startswith("0 log lines from ")
     assert out["metrics"].tool_calls == 3
     prompts = [m[0].content for m in model.prompts]
     assert any("Blocked: list_pods(namespace=shop) was already called" in p for p in prompts)

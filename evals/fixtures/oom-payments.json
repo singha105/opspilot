@@ -4,11 +4,11 @@
   "scenario_file": "faults/scenarios/oom-payments.yaml",
   "scenario_sha256": "ba76cf854cac2c7135d92e8230f75304ae9c14cb02c2b6b3060d1a49bbca5211",
   "namespace": "shop",
-  "recorded_at": "2026-10-07T06:25:59Z",
+  "recorded_at": "2026-10-08T01:35:49Z",
   "kubernetes_version": "v1.35.5+k3s1",
-  "opspilot_version": "0.3.0",
+  "opspilot_version": "0.4.0",
   "identity": "opspilot-reader",
-  "symptom_seconds": 3.1,
+  "symptom_seconds": 6.3,
   "settle_seconds": 20.0,
   "tool_calls": 43
  },
@@ -22,126 +22,162 @@
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/inventory-api",
-     "count": 2,
-     "message": "Scaled up replica set inventory-api-96b9b8944 from 0 to 1",
-     "age": "35s",
-     "age_s": 35
-    },
-    {
-     "type": "Normal",
-     "reason": "ScalingReplicaSet",
-     "object": "Deployment/inventory-api",
      "count": 1,
      "message": "Scaled down replica set inventory-api-695b744c86 from 1 to 0",
-     "age": "35s",
-     "age_s": 35
+     "age": "3m",
+     "age_s": 184
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/inventory-api",
+     "count": 14,
+     "message": "Scaled down replica set inventory-api-96b9b8944 from 1 to 0",
+     "age": "3m",
+     "age_s": 209
     },
     {
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/inventory-api",
      "count": 2,
-     "message": "Scaled down replica set inventory-api-96b9b8944 from 1 to 0",
-     "age": "59s",
-     "age_s": 59
+     "message": "Scaled down replica set inventory-api-74687d8dd5 from 1 to 0",
+     "age": "21m",
+     "age_s": 1269
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/inventory-api",
+     "count": 2,
+     "message": "Scaled up replica set inventory-api-74687d8dd5 from 0 to 1",
+     "age": "21m",
+     "age_s": 1273
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/inventory-api",
+     "count": 4,
+     "message": "(combined from similar events): Scaled up replica set inventory-api-96b9b8944 from 0 to 1",
+     "age": "21m",
+     "age_s": 1307
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/inventory-api",
+     "count": 5,
+     "message": "Scaled up replica set inventory-api-96b9b8944 from 0 to 1",
+     "age": "22m",
+     "age_s": 1366
     },
     {
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/inventory-api",
      "count": 1,
-     "message": "Scaled up replica set inventory-api-695b744c86 from 0 to 1",
-     "age": "59s",
-     "age_s": 59
+     "message": "Scaled down replica set inventory-api-c474df6b8 from 1 to 0",
+     "age": "22m",
+     "age_s": 1366
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/inventory-api",
+     "count": 2,
+     "message": "Scaled up replica set inventory-api-c474df6b8 from 0 to 1",
+     "age": "23m",
+     "age_s": 1420
     },
     {
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/inventory-api",
      "count": 1,
-     "message": "Scaled down replica set inventory-api-5ffd8c5945 from 1 to 0",
-     "age": "2m",
-     "age_s": 144
+     "message": "Scaled down replica set inventory-api-757464dd54 from 1 to 0",
+     "age": "28m",
+     "age_s": 1733
     },
     {
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/inventory-api",
      "count": 1,
-     "message": "Scaled down replica set inventory-api-f4954b99b from 1 to 0",
-     "age": "5m",
-     "age_s": 301
+     "message": "Scaled up replica set inventory-api-757464dd54 from 0 to 1",
+     "age": "28m",
+     "age_s": 1737
     },
     {
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/inventory-api",
      "count": 1,
-     "message": "Scaled up replica set inventory-api-5ffd8c5945 from 0 to 1",
-     "age": "5m",
-     "age_s": 301
+     "message": "Scaled down replica set inventory-api-6594b88f67 from 1 to 0",
+     "age": "30m",
+     "age_s": 1847
     },
     {
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/inventory-api",
      "count": 1,
-     "message": "Scaled up replica set inventory-api-f4954b99b from 0 to 1",
-     "age": "5m",
-     "age_s": 324
+     "message": "Scaled up replica set inventory-api-6594b88f67 from 0 to 1",
+     "age": "33m",
+     "age_s": 1997
     }
    ],
    "truncated": false
   },
-  "{\"args\":{\"involved_object_name\":\"inventory-api-96b9b8944-t6hh2\",\"namespace\":\"shop\",\"since_minutes\":120},\"tool\":\"get_events\"}": {
+  "{\"args\":{\"involved_object_name\":\"inventory-api-96b9b8944-4jglx\",\"namespace\":\"shop\",\"since_minutes\":120},\"tool\":\"get_events\"}": {
    "namespace": "shop",
-   "involved_object_name": "inventory-api-96b9b8944-t6hh2",
+   "involved_object_name": "inventory-api-96b9b8944-4jglx",
    "since_minutes": 120,
    "events": [
     {
      "type": "Warning",
      "reason": "Unhealthy",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
      "count": 2,
-     "message": "Readiness probe failed: Get \"http://10.42.0.41:8080/readyz\": dial tcp 10.42.0.41:8080: connect: connection refused",
-     "age": "33s",
-     "age_s": 33
-    },
-    {
-     "type": "Normal",
-     "reason": "Created",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
-     "count": 1,
-     "message": "Container created",
-     "age": "34s",
-     "age_s": 34
-    },
-    {
-     "type": "Normal",
-     "reason": "Started",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
-     "count": 1,
-     "message": "Container started",
-     "age": "34s",
-     "age_s": 34
-    },
-    {
-     "type": "Normal",
-     "reason": "Scheduled",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
-     "count": 1,
-     "message": "Successfully assigned shop/inventory-api-96b9b8944-t6hh2 to k3d-opspilot-server-0",
-     "age": "34s",
-     "age_s": 34
+     "message": "Readiness probe failed: Get \"http://10.42.0.174:8080/readyz\": dial tcp 10.42.0.174:8080: connect: connection refused",
+     "age": "36s",
+     "age_s": 36
     },
     {
      "type": "Normal",
      "reason": "Pulled",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
      "count": 1,
      "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
-     "age": "35s",
-     "age_s": 35
+     "age": "37s",
+     "age_s": 37
+    },
+    {
+     "type": "Normal",
+     "reason": "Created",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
+     "count": 1,
+     "message": "Container created",
+     "age": "37s",
+     "age_s": 37
+    },
+    {
+     "type": "Normal",
+     "reason": "Started",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
+     "count": 1,
+     "message": "Container started",
+     "age": "37s",
+     "age_s": 37
+    },
+    {
+     "type": "Normal",
+     "reason": "Scheduled",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
+     "count": 1,
+     "message": "Successfully assigned shop/inventory-api-96b9b8944-4jglx to k3d-opspilot-server-0",
+     "age": "37s",
+     "age_s": 37
     }
    ],
    "truncated": false
@@ -155,99 +191,153 @@
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/orders-api",
-     "count": 1,
-     "message": "Scaled down replica set orders-api-5bbf54b6db from 1 to 0",
-     "age": "1m",
-     "age_s": 63
-    },
-    {
-     "type": "Normal",
-     "reason": "ScalingReplicaSet",
-     "object": "Deployment/orders-api",
-     "count": 1,
-     "message": "Scaled up replica set orders-api-7bd8ccc96d from 0 to 1",
-     "age": "1m",
-     "age_s": 63
-    },
-    {
-     "type": "Normal",
-     "reason": "ScalingReplicaSet",
-     "object": "Deployment/orders-api",
-     "count": 1,
+     "count": 16,
      "message": "Scaled down replica set orders-api-7bd8ccc96d from 1 to 0",
-     "age": "1m",
-     "age_s": 88
+     "age": "4m",
+     "age_s": 296
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/orders-api",
+     "count": 7,
+     "message": "(combined from similar events): Scaled down replica set orders-api-5bbf54b6db from 1 to 0",
+     "age": "20m",
+     "age_s": 1236
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/orders-api",
+     "count": 6,
+     "message": "Scaled up replica set orders-api-7bd8ccc96d from 0 to 1",
+     "age": "21m",
+     "age_s": 1276
     },
     {
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/orders-api",
      "count": 1,
-     "message": "Scaled up replica set orders-api-5bbf54b6db from 0 to 1",
-     "age": "1m",
-     "age_s": 88
+     "message": "Scaled up replica set orders-api-57899bfd65 from 0 to 1",
+     "age": "21m",
+     "age_s": 1283
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/orders-api",
+     "count": 1,
+     "message": "Scaled down replica set orders-api-5b7cc66bf from 1 to 0",
+     "age": "21m",
+     "age_s": 1293
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/orders-api",
+     "count": 1,
+     "message": "Scaled up replica set orders-api-5b7cc66bf from 0 to 1",
+     "age": "21m",
+     "age_s": 1296
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/orders-api",
+     "count": 3,
+     "message": "Scaled down replica set orders-api-5976c447b4 from 1 to 0",
+     "age": "26m",
+     "age_s": 1598
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/orders-api",
+     "count": 3,
+     "message": "Scaled up replica set orders-api-5976c447b4 from 0 to 1",
+     "age": "26m",
+     "age_s": 1601
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/orders-api",
+     "count": 1,
+     "message": "Scaled down replica set orders-api-64cf4fcfbb from 1 to 0",
+     "age": "28m",
+     "age_s": 1695
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/orders-api",
+     "count": 1,
+     "message": "Scaled up replica set orders-api-64cf4fcfbb from 0 to 1",
+     "age": "28m",
+     "age_s": 1713
     }
    ],
    "truncated": false
   },
-  "{\"args\":{\"involved_object_name\":\"orders-api-7bd8ccc96d-wdbnd\",\"namespace\":\"shop\",\"since_minutes\":120},\"tool\":\"get_events\"}": {
+  "{\"args\":{\"involved_object_name\":\"orders-api-7bd8ccc96d-x6gxh\",\"namespace\":\"shop\",\"since_minutes\":120},\"tool\":\"get_events\"}": {
    "namespace": "shop",
-   "involved_object_name": "orders-api-7bd8ccc96d-wdbnd",
+   "involved_object_name": "orders-api-7bd8ccc96d-x6gxh",
    "since_minutes": 120,
    "events": [
     {
      "type": "Warning",
      "reason": "Unhealthy",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
-     "count": 6,
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
+     "count": 20,
      "message": "Readiness probe failed: HTTP probe failed with statuscode: 503",
-     "age": "1s",
-     "age_s": 1
+     "age": "0s",
+     "age_s": 0
     },
     {
      "type": "Warning",
      "reason": "Unhealthy",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
-     "count": 1,
-     "message": "Readiness probe failed: Get \"http://10.42.0.39:8080/readyz\": dial tcp 10.42.0.39:8080: connect: connection refused",
-     "age": "1m",
-     "age_s": 62
-    },
-    {
-     "type": "Normal",
-     "reason": "Scheduled",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
-     "count": 1,
-     "message": "Successfully assigned shop/orders-api-7bd8ccc96d-wdbnd to k3d-opspilot-server-0",
-     "age": "1m",
-     "age_s": 63
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
+     "count": 2,
+     "message": "Readiness probe failed: Get \"http://10.42.0.169:8080/readyz\": dial tcp 10.42.0.169:8080: connect: connection refused",
+     "age": "2m",
+     "age_s": 146
     },
     {
      "type": "Normal",
      "reason": "Pulled",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
      "count": 1,
      "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
-     "age": "1m",
-     "age_s": 63
+     "age": "2m",
+     "age_s": 147
     },
     {
      "type": "Normal",
      "reason": "Created",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
      "count": 1,
      "message": "Container created",
-     "age": "1m",
-     "age_s": 63
+     "age": "2m",
+     "age_s": 147
     },
     {
      "type": "Normal",
      "reason": "Started",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
      "count": 1,
      "message": "Container started",
-     "age": "1m",
-     "age_s": 63
+     "age": "2m",
+     "age_s": 147
+    },
+    {
+     "type": "Normal",
+     "reason": "Scheduled",
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
+     "count": 1,
+     "message": "Successfully assigned shop/orders-api-7bd8ccc96d-x6gxh to k3d-opspilot-server-0",
+     "age": "2m",
+     "age_s": 147
     }
    ],
    "truncated": false
@@ -261,81 +351,162 @@
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/payments-api",
-     "count": 1,
+     "count": 15,
      "message": "Scaled down replica set payments-api-598847d4cb from 1 to 0",
-     "age": "24s",
-     "age_s": 24
+     "age": "28s",
+     "age_s": 28
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/payments-api",
+     "count": 22,
+     "message": "(combined from similar events): Scaled down replica set payments-api-598847d4cb from 1 to 0",
+     "age": "6m",
+     "age_s": 360
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/payments-api",
+     "count": 6,
+     "message": "Scaled up replica set payments-api-598847d4cb from 0 to 1",
+     "age": "17m",
+     "age_s": 1058
     },
     {
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/payments-api",
      "count": 1,
-     "message": "Scaled up replica set payments-api-6869469c4c from 0 to 1",
-     "age": "24s",
-     "age_s": 24
+     "message": "Scaled up replica set payments-api-b774cf5b9 from 0 to 1",
+     "age": "19m",
+     "age_s": 1183
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/payments-api",
+     "count": 1,
+     "message": "Scaled down replica set payments-api-79c9f98bc4 from 1 to 0",
+     "age": "19m",
+     "age_s": 1189
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/payments-api",
+     "count": 1,
+     "message": "Scaled up replica set payments-api-79c9f98bc4 from 0 to 1",
+     "age": "20m",
+     "age_s": 1212
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/payments-api",
+     "count": 1,
+     "message": "Scaled down replica set payments-api-669f6d5bb9 from 1 to 0",
+     "age": "20m",
+     "age_s": 1223
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/payments-api",
+     "count": 1,
+     "message": "Scaled up replica set payments-api-669f6d5bb9 from 0 to 1",
+     "age": "20m",
+     "age_s": 1226
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/payments-api",
+     "count": 1,
+     "message": "Scaled down replica set payments-api-7dcbd8b76b from 1 to 0",
+     "age": "21m",
+     "age_s": 1262
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/payments-api",
+     "count": 1,
+     "message": "Scaled up replica set payments-api-7dcbd8b76b from 0 to 1",
+     "age": "21m",
+     "age_s": 1266
     }
    ],
    "truncated": false
   },
-  "{\"args\":{\"involved_object_name\":\"payments-api-6869469c4c-9f9c2\",\"namespace\":\"shop\",\"since_minutes\":120},\"tool\":\"get_events\"}": {
+  "{\"args\":{\"involved_object_name\":\"payments-api-6869469c4c-bw5dz\",\"namespace\":\"shop\",\"since_minutes\":120},\"tool\":\"get_events\"}": {
    "namespace": "shop",
-   "involved_object_name": "payments-api-6869469c4c-9f9c2",
+   "involved_object_name": "payments-api-6869469c4c-bw5dz",
    "since_minutes": 120,
    "events": [
     {
      "type": "Warning",
      "reason": "BackOff",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
-     "count": 6,
-     "message": "Back-off restarting failed container app in pod payments-api-6869469c4c-9f9c2_shop(b59ffcfc-7cd4-4165-82ef-871a98c9ab61)",
-     "age": "4s",
-     "age_s": 4
-    },
-    {
-     "type": "Warning",
-     "reason": "Unhealthy",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 4,
-     "message": "Readiness probe failed: Get \"http://10.42.0.42:8080/readyz\": dial tcp 10.42.0.42:8080: connect: connection refused",
+     "message": "Back-off restarting failed container app in pod payments-api-6869469c4c-bw5dz_shop(c2d4d4cd-7ace-4022-b799-d06908ececb6)",
      "age": "7s",
      "age_s": 7
     },
     {
-     "type": "Normal",
-     "reason": "Pulled",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
-     "count": 3,
-     "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
+     "type": "Warning",
+     "reason": "Unhealthy",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
+     "count": 1,
+     "message": "Liveness probe failed: Get \"http://10.42.0.175:8080/healthz\": dial tcp 10.42.0.175:8080: connect: connection refused",
+     "age": "7s",
+     "age_s": 7
+    },
+    {
+     "type": "Warning",
+     "reason": "Unhealthy",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
+     "count": 5,
+     "message": "Readiness probe failed: Get \"http://10.42.0.175:8080/readyz\": dial tcp 10.42.0.175:8080: connect: connection refused",
      "age": "8s",
      "age_s": 8
+    },
+    {
+     "type": "Normal",
+     "reason": "Pulled",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
+     "count": 3,
+     "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
+     "age": "10s",
+     "age_s": 10
     },
     {
      "type": "Normal",
      "reason": "Created",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 3,
      "message": "Container created",
-     "age": "8s",
-     "age_s": 8
+     "age": "10s",
+     "age_s": 10
     },
     {
      "type": "Normal",
      "reason": "Started",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 3,
      "message": "Container started",
-     "age": "8s",
-     "age_s": 8
+     "age": "10s",
+     "age_s": 10
     },
     {
      "type": "Normal",
      "reason": "Scheduled",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 1,
-     "message": "Successfully assigned shop/payments-api-6869469c4c-9f9c2 to k3d-opspilot-server-0",
-     "age": "24s",
-     "age_s": 24
+     "message": "Successfully assigned shop/payments-api-6869469c4c-bw5dz to k3d-opspilot-server-0",
+     "age": "27s",
+     "age_s": 27
     }
    ],
    "truncated": false
@@ -344,58 +515,68 @@
    "namespace": "shop",
    "involved_object_name": "redis",
    "since_minutes": 120,
-   "events": [],
+   "events": [
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/redis",
+     "count": 4,
+     "message": "Scaled up replica set redis-8466fc9977 from 0 to 1",
+     "age": "6m",
+     "age_s": 366
+    },
+    {
+     "type": "Normal",
+     "reason": "ScalingReplicaSet",
+     "object": "Deployment/redis",
+     "count": 4,
+     "message": "Scaled down replica set redis-8466fc9977 from 1 to 0",
+     "age": "6m",
+     "age_s": 401
+    }
+   ],
    "truncated": false
   },
-  "{\"args\":{\"involved_object_name\":\"redis-8466fc9977-k8mwl\",\"namespace\":\"shop\",\"since_minutes\":120},\"tool\":\"get_events\"}": {
+  "{\"args\":{\"involved_object_name\":\"redis-8466fc9977-vzf2d\",\"namespace\":\"shop\",\"since_minutes\":120},\"tool\":\"get_events\"}": {
    "namespace": "shop",
-   "involved_object_name": "redis-8466fc9977-k8mwl",
+   "involved_object_name": "redis-8466fc9977-vzf2d",
    "since_minutes": 120,
    "events": [
     {
      "type": "Normal",
-     "reason": "Pulled",
-     "object": "Pod/redis-8466fc9977-k8mwl",
-     "count": 1,
-     "message": "Container image \"redis:7-alpine\" already present on machine and can be accessed by the pod",
-     "age": "19m",
-     "age_s": 1167
-    },
-    {
-     "type": "Normal",
-     "reason": "Created",
-     "object": "Pod/redis-8466fc9977-k8mwl",
-     "count": 1,
-     "message": "Container created",
-     "age": "19m",
-     "age_s": 1167
-    },
-    {
-     "type": "Normal",
      "reason": "Started",
-     "object": "Pod/redis-8466fc9977-k8mwl",
+     "object": "Pod/redis-8466fc9977-vzf2d",
      "count": 1,
      "message": "Container started",
-     "age": "19m",
-     "age_s": 1167
+     "age": "6m",
+     "age_s": 365
     },
     {
      "type": "Normal",
      "reason": "Scheduled",
-     "object": "Pod/redis-8466fc9977-k8mwl",
+     "object": "Pod/redis-8466fc9977-vzf2d",
      "count": 1,
-     "message": "Successfully assigned shop/redis-8466fc9977-k8mwl to k3d-opspilot-server-0",
-     "age": "19m",
-     "age_s": 1168
+     "message": "Successfully assigned shop/redis-8466fc9977-vzf2d to k3d-opspilot-server-0",
+     "age": "6m",
+     "age_s": 365
     },
     {
-     "type": "Warning",
-     "reason": "FailedScheduling",
-     "object": "Pod/redis-8466fc9977-k8mwl",
+     "type": "Normal",
+     "reason": "Pulled",
+     "object": "Pod/redis-8466fc9977-vzf2d",
      "count": 1,
-     "message": "0/1 nodes are available: 1 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling.",
-     "age": "19m",
-     "age_s": 1169
+     "message": "Container image \"redis:7-alpine\" already present on machine and can be accessed by the pod",
+     "age": "6m",
+     "age_s": 366
+    },
+    {
+     "type": "Normal",
+     "reason": "Created",
+     "object": "Pod/redis-8466fc9977-vzf2d",
+     "count": 1,
+     "message": "Container created",
+     "age": "6m",
+     "age_s": 366
     }
    ],
    "truncated": false
@@ -404,11 +585,11 @@
    "namespace": "shop",
    "pods": [
     {
-     "name": "inventory-api-96b9b8944-t6hh2",
+     "name": "inventory-api-96b9b8944-4jglx",
      "phase": "Running",
      "ready": "1/1",
      "restarts": 0,
-     "age": "34s",
+     "age": "37s",
      "node": "k3d-opspilot-server-0"
     }
    ],
@@ -418,11 +599,11 @@
    "namespace": "shop",
    "pods": [
     {
-     "name": "orders-api-7bd8ccc96d-wdbnd",
+     "name": "orders-api-7bd8ccc96d-x6gxh",
      "phase": "Running",
      "ready": "0/1",
      "restarts": 0,
-     "age": "1m",
+     "age": "2m",
      "node": "k3d-opspilot-server-0"
     }
    ],
@@ -432,13 +613,13 @@
    "namespace": "shop",
    "pods": [
     {
-     "name": "payments-api-6869469c4c-9f9c2",
+     "name": "payments-api-6869469c4c-bw5dz",
      "phase": "Running",
      "ready": "0/1",
      "restarts": 2,
-     "reason": "CrashLoopBackOff",
+     "reason": "OOMKilled",
      "last_reason": "OOMKilled",
-     "age": "23s",
+     "age": "27s",
      "node": "k3d-opspilot-server-0"
     }
    ],
@@ -448,11 +629,11 @@
    "namespace": "shop",
    "pods": [
     {
-     "name": "redis-8466fc9977-k8mwl",
+     "name": "redis-8466fc9977-vzf2d",
      "phase": "Running",
      "ready": "1/1",
      "restarts": 0,
-     "age": "1d",
+     "age": "6m",
      "node": "k3d-opspilot-server-0"
     }
    ],
@@ -461,7 +642,7 @@
   "{\"args\":{\"name\":\"inventory-api\",\"namespace\":\"shop\"},\"tool\":\"get_deployment\"}": {
    "name": "inventory-api",
    "namespace": "shop",
-   "revision": "10",
+   "revision": "43",
    "replicas": {
     "desired": 1,
     "ready": 1,
@@ -484,7 +665,7 @@
      "type": "Progressing",
      "status": "True",
      "reason": "NewReplicaSetAvailable",
-     "message": "ReplicaSet \"inventory-api-5ffd8c5945\" has successfully progressed."
+     "message": "ReplicaSet \"inventory-api-96b9b8944\" has successfully progressed."
     }
    ],
    "template": {
@@ -530,43 +711,43 @@
   "{\"args\":{\"name\":\"inventory-api\",\"namespace\":\"shop\"},\"tool\":\"get_rollout_history\"}": {
    "deployment": "inventory-api",
    "namespace": "shop",
-   "current_revision": "10",
+   "current_revision": "43",
    "revisions": [
     {
-     "revision": 6,
-     "replicaset": "inventory-api-f4954b99b",
+     "revision": 38,
+     "replicaset": "inventory-api-74687d8dd5",
      "images": [
       "opspilot-demo-svc:dev"
      ],
      "replicas": 0,
      "ready": 0,
-     "created": "2026-10-07T06:20:35+00:00",
-     "template_hash": "f4954b99b"
+     "created": "2026-10-08T01:24:13+00:00",
+     "template_hash": "74687d8dd5"
     },
     {
-     "revision": 7,
-     "replicaset": "inventory-api-5ffd8c5945",
-     "images": [
-      "opspilot-demo-svc:dev"
-     ],
-     "replicas": 0,
-     "ready": 0,
-     "created": "2026-10-07T06:20:58+00:00",
-     "template_hash": "5ffd8c5945"
-    },
-    {
-     "revision": 9,
+     "revision": 40,
      "replicaset": "inventory-api-695b744c86",
      "images": [
       "opspilot-demo-svc:dev"
      ],
      "replicas": 0,
      "ready": 0,
-     "created": "2026-10-05T05:29:34+00:00",
+     "created": "2026-10-08T01:32:20+00:00",
      "template_hash": "695b744c86"
     },
     {
-     "revision": 10,
+     "revision": 42,
+     "replicaset": "inventory-api-78944985cb",
+     "images": [
+      "opspilot-demo-svc:dev"
+     ],
+     "replicas": 0,
+     "ready": 0,
+     "created": "2026-10-08T01:34:46+00:00",
+     "template_hash": "78944985cb"
+    },
+    {
+     "revision": 43,
      "replicaset": "inventory-api-96b9b8944",
      "images": [
       "opspilot-demo-svc:dev"
@@ -589,41 +770,42 @@
    ],
    "addresses": [
     {
-     "ip": "10.42.0.41",
+     "ip": "10.42.0.174",
      "ready": true,
-     "pod": "inventory-api-96b9b8944-t6hh2"
+     "pod": "inventory-api-96b9b8944-4jglx"
     }
    ],
    "truncated": false
   },
-  "{\"args\":{\"name\":\"inventory-api-96b9b8944-t6hh2\",\"namespace\":\"shop\",\"previous\":false,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
-   "pod": "inventory-api-96b9b8944-t6hh2",
+  "{\"args\":{\"name\":\"inventory-api-96b9b8944-4jglx\",\"namespace\":\"shop\",\"previous\":false,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
+   "pod": "inventory-api-96b9b8944-4jglx",
    "previous": false,
    "tail_lines": 200,
-   "line_count": 9,
+   "line_count": 10,
    "lines": [
-    "{\"ts\": \"2026-10-07T06:25:26Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"service started\", \"port\": 8080, \"dependencies\": [\"redis\"]}",
-    "{\"ts\": \"2026-10-07T06:25:26Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"c0b934c7c7c94473\", \"dependency\": \"redis\", \"latency_ms\": 1.6, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:30Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"b6b6b36ce0dc4425\", \"dependency\": \"redis\", \"latency_ms\": 2.0, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:34Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"083f0036c83e4d77\", \"dependency\": \"redis\", \"latency_ms\": 2.5, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:39Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"41fba21fa6274b7c\", \"dependency\": \"redis\", \"latency_ms\": 1.4, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:42Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"fae8e9ea33854ccc\", \"dependency\": \"redis\", \"latency_ms\": 4.2, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:46Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"0be345aa2e3a4bac\", \"dependency\": \"redis\", \"latency_ms\": 1.9, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:49Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"fc2bee9c8e544450\", \"dependency\": \"redis\", \"latency_ms\": 2.1, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:54Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"533dccbcdaac4542\", \"dependency\": \"redis\", \"latency_ms\": 2.9, \"status\": 200}"
+    "{\"ts\": \"2026-10-08T01:35:14Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"service started\", \"port\": 8080, \"dependencies\": [\"redis\"], \"currency\": \"USD\"}",
+    "{\"ts\": \"2026-10-08T01:35:14Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"c04708677a0c4a7f\", \"dependency\": \"redis\", \"latency_ms\": 1.3, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:35:18Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"3228c6c7a2d44821\", \"dependency\": \"redis\", \"latency_ms\": 2.8, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:35:22Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"c212bbb6bade48fc\", \"dependency\": \"redis\", \"latency_ms\": 1.6, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:35:26Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"34f35b53f84345a9\", \"dependency\": \"redis\", \"latency_ms\": 1.9, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:35:29Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"2a2070cf8f9045ef\", \"dependency\": \"redis\", \"latency_ms\": 3.0, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:35:32Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"32552a3202ed4dd1\", \"dependency\": \"redis\", \"latency_ms\": 3.4, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:35:37Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"6ac712589713405a\", \"dependency\": \"redis\", \"latency_ms\": 2.4, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:35:41Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"693afb13298c4c32\", \"dependency\": \"redis\", \"latency_ms\": 1.1, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:35:44Z\", \"level\": \"INFO\", \"service\": \"inventory-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"0614e30041584f61\", \"dependency\": \"redis\", \"latency_ms\": 3.3, \"status\": 200}"
    ],
    "truncated": false
   },
-  "{\"args\":{\"name\":\"inventory-api-96b9b8944-t6hh2\",\"namespace\":\"shop\",\"previous\":true,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
+  "{\"args\":{\"name\":\"inventory-api-96b9b8944-4jglx\",\"namespace\":\"shop\",\"previous\":true,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
    "error": {
     "type": "bad_request",
-    "message": "previous terminated container \"app\" in pod \"inventory-api-96b9b8944-t6hh2\" not found",
+    "message": "previous terminated container \"app\" in pod \"inventory-api-96b9b8944-4jglx\" not found",
     "hint": "For previous=true the container must have restarted at least once.",
     "status": 400
    }
   },
-  "{\"args\":{\"name\":\"inventory-api-96b9b8944-t6hh2\",\"namespace\":\"shop\"},\"tool\":\"describe_pod\"}": {
-   "pod": "inventory-api-96b9b8944-t6hh2",
+  "{\"args\":{\"name\":\"inventory-api-96b9b8944-4jglx\",\"namespace\":\"shop\"},\"tool\":\"describe_pod\"}": {
+   "pod": "inventory-api-96b9b8944-4jglx",
    "namespace": "shop",
    "phase": "Running",
    "ready": true,
@@ -641,7 +823,7 @@
      "restartCount": 0,
      "state": {
       "running": {
-       "startedAt": "2026-10-07T06:25:25+00:00"
+       "startedAt": "2026-10-08T01:35:12+00:00"
       }
      },
      "lastState": {},
@@ -669,12 +851,12 @@
       "readiness": "GET /readyz :http every 5s, timeout 1s, fail after 2"
      },
      "volumeMounts": [
-      "kube-api-access-pj2qp:/var/run/secrets/kubernetes.io/serviceaccount"
+      "kube-api-access-74zrk:/var/run/secrets/kubernetes.io/serviceaccount"
      ]
     }
    ],
    "volumes": [
-    "kube-api-access-pj2qp (projected)"
+    "kube-api-access-74zrk (projected)"
    ],
    "conditions": [
     {
@@ -702,47 +884,47 @@
     {
      "type": "Warning",
      "reason": "Unhealthy",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
      "count": 2,
-     "message": "Readiness probe failed: Get \"http://10.42.0.41:8080/readyz\": dial tcp 10.42.0.41:8080: connect: connection refused",
-     "age": "32s",
-     "age_s": 32
-    },
-    {
-     "type": "Normal",
-     "reason": "Created",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
-     "count": 1,
-     "message": "Container created",
-     "age": "33s",
-     "age_s": 33
-    },
-    {
-     "type": "Normal",
-     "reason": "Started",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
-     "count": 1,
-     "message": "Container started",
-     "age": "33s",
-     "age_s": 33
-    },
-    {
-     "type": "Normal",
-     "reason": "Scheduled",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
-     "count": 1,
-     "message": "Successfully assigned shop/inventory-api-96b9b8944-t6hh2 to k3d-opspilot-server-0",
-     "age": "33s",
-     "age_s": 33
+     "message": "Readiness probe failed: Get \"http://10.42.0.174:8080/readyz\": dial tcp 10.42.0.174:8080: connect: connection refused",
+     "age": "35s",
+     "age_s": 35
     },
     {
      "type": "Normal",
      "reason": "Pulled",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
      "count": 1,
      "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
-     "age": "34s",
-     "age_s": 34
+     "age": "36s",
+     "age_s": 36
+    },
+    {
+     "type": "Normal",
+     "reason": "Created",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
+     "count": 1,
+     "message": "Container created",
+     "age": "36s",
+     "age_s": 36
+    },
+    {
+     "type": "Normal",
+     "reason": "Started",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
+     "count": 1,
+     "message": "Container started",
+     "age": "36s",
+     "age_s": 36
+    },
+    {
+     "type": "Normal",
+     "reason": "Scheduled",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
+     "count": 1,
+     "message": "Successfully assigned shop/inventory-api-96b9b8944-4jglx to k3d-opspilot-server-0",
+     "age": "36s",
+     "age_s": 36
     }
    ],
    "truncated": false
@@ -759,7 +941,7 @@
   "{\"args\":{\"name\":\"orders-api\",\"namespace\":\"shop\"},\"tool\":\"get_deployment\"}": {
    "name": "orders-api",
    "namespace": "shop",
-   "revision": "7",
+   "revision": "57",
    "replicas": {
     "desired": 1,
     "ready": 0,
@@ -829,21 +1011,43 @@
   "{\"args\":{\"name\":\"orders-api\",\"namespace\":\"shop\"},\"tool\":\"get_rollout_history\"}": {
    "deployment": "orders-api",
    "namespace": "shop",
-   "current_revision": "7",
+   "current_revision": "57",
    "revisions": [
     {
-     "revision": 6,
-     "replicaset": "orders-api-5bbf54b6db",
+     "revision": 52,
+     "replicaset": "orders-api-64cf4fcfbb",
      "images": [
-      "opspilot-demo-svc:does-not-exist"
+      "opspilot-demo-svc:dev"
      ],
      "replicas": 0,
      "ready": 0,
-     "created": "2026-10-05T05:29:21+00:00",
-     "template_hash": "5bbf54b6db"
+     "created": "2026-10-08T01:30:53+00:00",
+     "template_hash": "64cf4fcfbb"
     },
     {
-     "revision": 7,
+     "revision": 54,
+     "replicaset": "orders-api-75db754479",
+     "images": [
+      "opspilot-demo-svc:dev"
+     ],
+     "replicas": 0,
+     "ready": 0,
+     "created": "2026-10-08T01:31:46+00:00",
+     "template_hash": "75db754479"
+    },
+    {
+     "revision": 56,
+     "replicaset": "orders-api-7b5cc76494",
+     "images": [
+      "opspilot-demo-svc:dev"
+     ],
+     "replicas": 0,
+     "ready": 0,
+     "created": "2026-10-08T01:32:55+00:00",
+     "template_hash": "7b5cc76494"
+    },
+    {
+     "revision": 57,
      "replicaset": "orders-api-7bd8ccc96d",
      "images": [
       "opspilot-demo-svc:dev"
@@ -866,57 +1070,54 @@
    ],
    "addresses": [
     {
-     "ip": "10.42.0.39",
+     "ip": "10.42.0.169",
      "ready": false,
-     "pod": "orders-api-7bd8ccc96d-wdbnd"
+     "pod": "orders-api-7bd8ccc96d-x6gxh"
     }
    ],
    "truncated": false
   },
-  "{\"args\":{\"name\":\"orders-api-7bd8ccc96d-wdbnd\",\"namespace\":\"shop\",\"previous\":false,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
-   "pod": "orders-api-7bd8ccc96d-wdbnd",
+  "{\"args\":{\"name\":\"orders-api-7bd8ccc96d-x6gxh\",\"namespace\":\"shop\",\"previous\":false,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
+   "pod": "orders-api-7bd8ccc96d-x6gxh",
    "previous": false,
    "tail_lines": 200,
-   "line_count": 35,
+   "line_count": 71,
    "lines": [
-    "{\"ts\": \"2026-10-07T06:24:58Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"service started\", \"port\": 8080, \"dependencies\": [\"payments\", \"redis\"]}",
-    "{\"ts\": \"2026-10-07T06:24:58Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"1f30c92559624abc\", \"dependency\": \"payments\", \"latency_ms\": 8.2, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:24:58Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"f7cb86f45d4d43d1\", \"dependency\": \"redis\", \"latency_ms\": 0.4, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:02Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"bccf79b594684d7d\", \"dependency\": \"payments\", \"latency_ms\": 9.0, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:02Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"3b1119ac15c24581\", \"dependency\": \"redis\", \"latency_ms\": 2.8, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:05Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"17df528c779343e5\", \"dependency\": \"payments\", \"latency_ms\": 5.6, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:05Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"d3b81744416b4b16\", \"dependency\": \"redis\", \"latency_ms\": 1.4, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:09Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"00b5412257584703\", \"dependency\": \"payments\", \"latency_ms\": 8.3, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:09Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"62caff6c3cf84a20\", \"dependency\": \"redis\", \"latency_ms\": 3.4, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:13Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"8374794700294ad0\", \"dependency\": \"payments\", \"latency_ms\": 4.8, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:13Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"f3dd7e3e9fbf4279\", \"dependency\": \"redis\", \"latency_ms\": 1.3, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:16Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"a263e66f6be2480c\", \"dependency\": \"payments\", \"latency_ms\": 2.7, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:16Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"26aa180dcf4a477c\", \"dependency\": \"redis\", \"latency_ms\": 1.0, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:19Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"033e4c477b364418\", \"dependency\": \"payments\", \"latency_ms\": 2.5, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:19Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"c4820ff372074b1a\", \"dependency\": \"redis\", \"latency_ms\": 4.6, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:23Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"db4e9e5fea324952\", \"dependency\": \"payments\", \"latency_ms\": 8.0, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:23Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"cf887e222f894b57\", \"dependency\": \"redis\", \"latency_ms\": 1.3, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:26Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"21f763e5d5e64770\", \"dependency\": \"payments\", \"latency_ms\": 3.8, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:26Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"186d5dfa6ef24b4f\", \"dependency\": \"redis\", \"latency_ms\": 0.8, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:30Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"033b9c6024b7452c\", \"dependency\": \"payments\", \"latency_ms\": 3.9, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:30Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"b3fabf42a6f34d3e\", \"dependency\": \"redis\", \"latency_ms\": 1.7, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:34Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"65243c00dc6b40c8\", \"dependency\": \"payments\", \"latency_ms\": 7.4, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:34Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"fffd3b3689934305\", \"dependency\": \"redis\", \"latency_ms\": 1.4, \"status\": 200}",
-    "{\"ts\": \"2026-10-07T06:25:38Z\", \"level\": \"ERROR\", \"service\": \"orders-api\", \"msg\": \"call to payments failed\", \"request_id\": \"1fb42a326fe34eaa\", \"dependency\": \"payments\", \"url\": \"http://payments-api:8080\", \"latency_ms\": 2.1, \"status\": null, \"error\": \"URLError: <urlopen error [Errno 111] Connection refused>\"}"
+    "{\"ts\": \"2026-10-08T01:33:24Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"service started\", \"port\": 8080, \"dependencies\": [\"payments\", \"redis\"], \"currency\": \"USD\"}",
+    "{\"ts\": \"2026-10-08T01:33:24Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"b398fb997dd24d01\", \"dependency\": \"payments\", \"latency_ms\": 92.4, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:33:24Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"078026c824d54bd2\", \"dependency\": \"redis\", \"latency_ms\": 0.4, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:33:28Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to payments returned 200\", \"request_id\": \"350a80cb375d4eab\", \"dependency\": \"payments\", \"latency_ms\": 29.7, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:33:28Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"48d47e47687e40fe\", \"dependency\": \"redis\", \"latency_ms\": 1.7, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:33:35Z\", \"level\": \"ERROR\", \"service\": \"orders-api\", \"msg\": \"call to payments failed\", \"request_id\": \"6099471bc4ec46a1\", \"dependency\": \"payments\", \"url\": \"http://payments-api:8080\", \"latency_ms\": 2003.8, \"status\": null, \"error\": \"URLError: <urlopen error timed out>\"}",
+    "{\"ts\": \"2026-10-08T01:33:35Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"5c587dea4e3140fb\", \"dependency\": \"redis\", \"latency_ms\": 1.7, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:33:38Z\", \"level\": \"ERROR\", \"service\": \"orders-api\", \"msg\": \"call to payments failed\", \"request_id\": \"45667cf246d749be\", \"dependency\": \"payments\", \"url\": \"http://payments-api:8080\", \"latency_ms\": 2.4, \"status\": null, \"error\": \"URLError: <urlopen error [Errno 111] Connection refused>\"}",
+    "{\"ts\": \"2026-10-08T01:33:38Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"c015604b1cef499a\", \"dependency\": \"redis\", \"latency_ms\": 1.0, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:33:41Z\", \"level\": \"ERROR\", \"service\": \"orders-api\", \"msg\": \"call to payments failed\", \"request_id\": \"47fc33a289c646a5\", \"dependency\": \"payments\", \"url\": \"http://payments-api:8080\", \"latency_ms\": 1.0, \"status\": null, \"error\": \"URLError: <urlopen error [Errno 111] Connection refused>\"}",
+    "{\"ts\": \"2026-10-08T01:33:41Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"14f6b45c37274d89\", \"dependency\": \"redis\", \"latency_ms\": 0.4, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:33:45Z\", \"level\": \"ERROR\", \"service\": \"orders-api\", \"msg\": \"call to payments failed\", \"request_id\": \"f6fc5f599c8642f3\", \"dependency\": \"payments\", \"url\": \"http://payments-api:8080\", \"latency_ms\": 2.9, \"status\": null, \"error\": \"URLError: <urlopen error [Errno 111] Connection refused>\"}",
+    "{\"ts\": \"2026-10-08T01:33:45Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"73e71d882cf243aa\", \"dependency\": \"redis\", \"latency_ms\": 2.5, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:33:49Z\", \"level\": \"ERROR\", \"service\": \"orders-api\", \"msg\": \"call to payments failed\", \"request_id\": \"b782d985c2504bcd\", \"dependency\": \"payments\", \"url\": \"http://payments-api:8080\", \"latency_ms\": 2.3, \"status\": null, \"error\": \"URLError: <urlopen error [Errno 111] Connection refused>\"}",
+    "{\"ts\": \"2026-10-08T01:33:49Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"965501a10dd749d5\", \"dependency\": \"redis\", \"latency_ms\": 1.6, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:33:53Z\", \"level\": \"ERROR\", \"service\": \"orders-api\", \"msg\": \"call to payments failed\", \"request_id\": \"55422211fd204883\", \"dependency\": \"payments\", \"url\": \"http://payments-api:8080\", \"latency_ms\": 2.9, \"status\": null, \"error\": \"URLError: <urlopen error [Errno 111] Connection refused>\"}",
+    "{\"ts\": \"2026-10-08T01:33:53Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"161fcfe5d1b34c5c\", \"dependency\": \"redis\", \"latency_ms\": 2.0, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:33:57Z\", \"level\": \"ERROR\", \"service\": \"orders-api\", \"msg\": \"call to payments failed\", \"request_id\": \"af9c60b8aeef4b82\", \"dependency\": \"payments\", \"url\": \"http://payments-api:8080\", \"latency_ms\": 0.9, \"status\": null, \"error\": \"URLError: <urlopen error [Errno 111] Connection refused>\"}",
+    "{\"ts\": \"2026-10-08T01:33:57Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"7ccee11dda744540\", \"dependency\": \"redis\", \"latency_ms\": 0.4, \"status\": 200}",
+    "{\"ts\": \"2026-10-08T01:34:01Z\", \"level\": \"ERROR\", \"service\": \"orders-api\", \"msg\": \"call to payments failed\", \"request_id\": \"2603d0da25a54caf\", \"dependency\": \"payments\", \"url\": \"http://payments-api:8080\", \"latency_ms\": 3.4, \"status\": null, \"error\": \"URLError: <urlopen error [Errno 111] Connection refused>\"}",
+    "{\"ts\": \"2026-10-08T01:34:01Z\", \"level\": \"INFO\", \"service\": \"orders-api\", \"msg\": \"call to redis returned 200\", \"request_id\": \"28bf5ef168224c6b\", \"dependency\": \"redis\", \"latency_ms\": 1.8, \"status\": 200}"
    ],
    "truncated": true,
    "hint": "Lower tail_lines or pass contains='error' to filter lines."
   },
-  "{\"args\":{\"name\":\"orders-api-7bd8ccc96d-wdbnd\",\"namespace\":\"shop\",\"previous\":true,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
+  "{\"args\":{\"name\":\"orders-api-7bd8ccc96d-x6gxh\",\"namespace\":\"shop\",\"previous\":true,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
    "error": {
     "type": "bad_request",
-    "message": "previous terminated container \"app\" in pod \"orders-api-7bd8ccc96d-wdbnd\" not found",
+    "message": "previous terminated container \"app\" in pod \"orders-api-7bd8ccc96d-x6gxh\" not found",
     "hint": "For previous=true the container must have restarted at least once.",
     "status": 400
    }
   },
-  "{\"args\":{\"name\":\"orders-api-7bd8ccc96d-wdbnd\",\"namespace\":\"shop\"},\"tool\":\"describe_pod\"}": {
-   "pod": "orders-api-7bd8ccc96d-wdbnd",
+  "{\"args\":{\"name\":\"orders-api-7bd8ccc96d-x6gxh\",\"namespace\":\"shop\"},\"tool\":\"describe_pod\"}": {
+   "pod": "orders-api-7bd8ccc96d-x6gxh",
    "namespace": "shop",
    "phase": "Running",
    "ready": false,
@@ -934,7 +1135,7 @@
      "restartCount": 0,
      "state": {
       "running": {
-       "startedAt": "2026-10-07T06:24:56+00:00"
+       "startedAt": "2026-10-08T01:33:22+00:00"
       }
      },
      "lastState": {},
@@ -963,12 +1164,12 @@
       "readiness": "GET /readyz :http every 5s, timeout 1s, fail after 2"
      },
      "volumeMounts": [
-      "kube-api-access-sfcgw:/var/run/secrets/kubernetes.io/serviceaccount"
+      "kube-api-access-m6w98:/var/run/secrets/kubernetes.io/serviceaccount"
      ]
     }
    ],
    "volumes": [
-    "kube-api-access-sfcgw (projected)"
+    "kube-api-access-m6w98 (projected)"
    ],
    "conditions": [
     {
@@ -998,56 +1199,56 @@
     {
      "type": "Warning",
      "reason": "Unhealthy",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
-     "count": 5,
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
+     "count": 19,
      "message": "Readiness probe failed: HTTP probe failed with statuscode: 503",
-     "age": "5s",
-     "age_s": 5
+     "age": "4s",
+     "age_s": 4
     },
     {
      "type": "Warning",
      "reason": "Unhealthy",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
-     "count": 1,
-     "message": "Readiness probe failed: Get \"http://10.42.0.39:8080/readyz\": dial tcp 10.42.0.39:8080: connect: connection refused",
-     "age": "1m",
-     "age_s": 61
-    },
-    {
-     "type": "Normal",
-     "reason": "Scheduled",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
-     "count": 1,
-     "message": "Successfully assigned shop/orders-api-7bd8ccc96d-wdbnd to k3d-opspilot-server-0",
-     "age": "1m",
-     "age_s": 62
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
+     "count": 2,
+     "message": "Readiness probe failed: Get \"http://10.42.0.169:8080/readyz\": dial tcp 10.42.0.169:8080: connect: connection refused",
+     "age": "2m",
+     "age_s": 145
     },
     {
      "type": "Normal",
      "reason": "Pulled",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
      "count": 1,
      "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
-     "age": "1m",
-     "age_s": 62
+     "age": "2m",
+     "age_s": 146
     },
     {
      "type": "Normal",
      "reason": "Created",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
      "count": 1,
      "message": "Container created",
-     "age": "1m",
-     "age_s": 62
+     "age": "2m",
+     "age_s": 146
     },
     {
      "type": "Normal",
      "reason": "Started",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
      "count": 1,
      "message": "Container started",
-     "age": "1m",
-     "age_s": 62
+     "age": "2m",
+     "age_s": 146
+    },
+    {
+     "type": "Normal",
+     "reason": "Scheduled",
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
+     "count": 1,
+     "message": "Successfully assigned shop/orders-api-7bd8ccc96d-x6gxh to k3d-opspilot-server-0",
+     "age": "2m",
+     "age_s": 146
     }
    ],
    "truncated": false
@@ -1055,7 +1256,7 @@
   "{\"args\":{\"name\":\"payments-api\",\"namespace\":\"shop\"},\"tool\":\"get_deployment\"}": {
    "name": "payments-api",
    "namespace": "shop",
-   "revision": "8",
+   "revision": "51",
    "replicas": {
     "desired": 1,
     "ready": 0,
@@ -1077,8 +1278,8 @@
     {
      "type": "Progressing",
      "status": "True",
-     "reason": "NewReplicaSetAvailable",
-     "message": "ReplicaSet \"payments-api-598847d4cb\" has successfully progressed."
+     "reason": "ReplicaSetUpdated",
+     "message": "ReplicaSet \"payments-api-6869469c4c\" is progressing."
     }
    ],
    "template": {
@@ -1122,21 +1323,43 @@
   "{\"args\":{\"name\":\"payments-api\",\"namespace\":\"shop\"},\"tool\":\"get_rollout_history\"}": {
    "deployment": "payments-api",
    "namespace": "shop",
-   "current_revision": "8",
+   "current_revision": "51",
    "revisions": [
     {
-     "revision": 6,
-     "replicaset": "payments-api-76bb5fdd85",
+     "revision": 45,
+     "replicaset": "payments-api-7d5cc86f78",
      "images": [
       "opspilot-demo-svc:dev"
      ],
      "replicas": 0,
      "ready": 0,
-     "created": "2026-10-05T05:30:13+00:00",
-     "template_hash": "76bb5fdd85"
+     "created": "2026-10-08T01:29:49+00:00",
+     "template_hash": "7d5cc86f78"
     },
     {
-     "revision": 7,
+     "revision": 47,
+     "replicaset": "payments-api-6754f8895c",
+     "images": [
+      "opspilot-demo-svc:dev"
+     ],
+     "replicas": 0,
+     "ready": 0,
+     "created": "2026-10-08T01:33:32+00:00",
+     "template_hash": "6754f8895c"
+    },
+    {
+     "revision": 49,
+     "replicaset": "payments-api-bdf8566f4",
+     "images": [
+      "opspilot-demo-svc:dev"
+     ],
+     "replicas": 0,
+     "ready": 0,
+     "created": "2026-10-08T01:34:10+00:00",
+     "template_hash": "bdf8566f4"
+    },
+    {
+     "revision": 50,
      "replicaset": "payments-api-598847d4cb",
      "images": [
       "opspilot-demo-svc:dev"
@@ -1147,14 +1370,14 @@
      "template_hash": "598847d4cb"
     },
     {
-     "revision": 8,
+     "revision": 51,
      "replicaset": "payments-api-6869469c4c",
      "images": [
       "opspilot-demo-svc:dev"
      ],
      "replicas": 1,
      "ready": 0,
-     "created": "2026-10-05T05:27:10+00:00",
+     "created": "2026-10-08T01:35:21+00:00",
      "template_hash": "6869469c4c"
     }
    ],
@@ -1170,31 +1393,33 @@
    ],
    "addresses": [
     {
-     "ip": "10.42.0.42",
+     "ip": "10.42.0.175",
      "ready": false,
-     "pod": "payments-api-6869469c4c-9f9c2"
+     "pod": "payments-api-6869469c4c-bw5dz"
     }
    ],
    "truncated": false
   },
-  "{\"args\":{\"name\":\"payments-api-6869469c4c-9f9c2\",\"namespace\":\"shop\",\"previous\":false,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
-   "pod": "payments-api-6869469c4c-9f9c2",
+  "{\"args\":{\"name\":\"payments-api-6869469c4c-bw5dz\",\"namespace\":\"shop\",\"previous\":false,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
+   "pod": "payments-api-6869469c4c-bw5dz",
    "previous": false,
    "tail_lines": 200,
    "line_count": 0,
    "lines": [],
    "truncated": false
   },
-  "{\"args\":{\"name\":\"payments-api-6869469c4c-9f9c2\",\"namespace\":\"shop\",\"previous\":true,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
-   "pod": "payments-api-6869469c4c-9f9c2",
+  "{\"args\":{\"name\":\"payments-api-6869469c4c-bw5dz\",\"namespace\":\"shop\",\"previous\":true,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
+   "pod": "payments-api-6869469c4c-bw5dz",
    "previous": true,
    "tail_lines": 200,
-   "line_count": 0,
-   "lines": [],
+   "line_count": 1,
+   "lines": [
+    "unable to retrieve container logs for containerd://9838abaacb59177545678a51014ae08ef11b3730e22dc8f18f8c755731926e06"
+   ],
    "truncated": false
   },
-  "{\"args\":{\"name\":\"payments-api-6869469c4c-9f9c2\",\"namespace\":\"shop\"},\"tool\":\"describe_pod\"}": {
-   "pod": "payments-api-6869469c4c-9f9c2",
+  "{\"args\":{\"name\":\"payments-api-6869469c4c-bw5dz\",\"namespace\":\"shop\"},\"tool\":\"describe_pod\"}": {
+   "pod": "payments-api-6869469c4c-bw5dz",
    "namespace": "shop",
    "phase": "Running",
    "ready": false,
@@ -1211,16 +1436,17 @@
      "ready": false,
      "restartCount": 2,
      "state": {
-      "waiting": {
-       "reason": "CrashLoopBackOff",
-       "message": "back-off 20s restarting failed container=app pod=payments-api-6869469c4c-9f9c2_shop(b59ffcfc-7cd4-4165-82ef-871a98c9ab61)"
+      "terminated": {
+       "reason": "OOMKilled",
+       "exitCode": 137,
+       "finishedAt": "2026-10-08T01:35:41+00:00"
       }
      },
      "lastState": {
       "terminated": {
        "reason": "OOMKilled",
        "exitCode": 137,
-       "finishedAt": "2026-10-07T06:25:53+00:00"
+       "finishedAt": "2026-10-08T01:35:27+00:00"
       }
      },
      "resources": {
@@ -1245,12 +1471,12 @@
       "readiness": "GET /readyz :http every 5s, timeout 1s, fail after 2"
      },
      "volumeMounts": [
-      "kube-api-access-wdgzp:/var/run/secrets/kubernetes.io/serviceaccount"
+      "kube-api-access-bm672:/var/run/secrets/kubernetes.io/serviceaccount"
      ]
     }
    ],
    "volumes": [
-    "kube-api-access-wdgzp (projected)"
+    "kube-api-access-bm672 (projected)"
    ],
    "conditions": [
     {
@@ -1280,56 +1506,65 @@
     {
      "type": "Warning",
      "reason": "BackOff",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
-     "count": 6,
-     "message": "Back-off restarting failed container app in pod payments-api-6869469c4c-9f9c2_shop(b59ffcfc-7cd4-4165-82ef-871a98c9ab61)",
-     "age": "3s",
-     "age_s": 3
-    },
-    {
-     "type": "Warning",
-     "reason": "Unhealthy",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 4,
-     "message": "Readiness probe failed: Get \"http://10.42.0.42:8080/readyz\": dial tcp 10.42.0.42:8080: connect: connection refused",
+     "message": "Back-off restarting failed container app in pod payments-api-6869469c4c-bw5dz_shop(c2d4d4cd-7ace-4022-b799-d06908ececb6)",
      "age": "6s",
      "age_s": 6
     },
     {
-     "type": "Normal",
-     "reason": "Pulled",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
-     "count": 3,
-     "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
+     "type": "Warning",
+     "reason": "Unhealthy",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
+     "count": 1,
+     "message": "Liveness probe failed: Get \"http://10.42.0.175:8080/healthz\": dial tcp 10.42.0.175:8080: connect: connection refused",
+     "age": "6s",
+     "age_s": 6
+    },
+    {
+     "type": "Warning",
+     "reason": "Unhealthy",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
+     "count": 5,
+     "message": "Readiness probe failed: Get \"http://10.42.0.175:8080/readyz\": dial tcp 10.42.0.175:8080: connect: connection refused",
      "age": "7s",
      "age_s": 7
+    },
+    {
+     "type": "Normal",
+     "reason": "Pulled",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
+     "count": 3,
+     "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
+     "age": "9s",
+     "age_s": 9
     },
     {
      "type": "Normal",
      "reason": "Created",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 3,
      "message": "Container created",
-     "age": "7s",
-     "age_s": 7
+     "age": "9s",
+     "age_s": 9
     },
     {
      "type": "Normal",
      "reason": "Started",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 3,
      "message": "Container started",
-     "age": "7s",
-     "age_s": 7
+     "age": "9s",
+     "age_s": 9
     },
     {
      "type": "Normal",
      "reason": "Scheduled",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 1,
-     "message": "Successfully assigned shop/payments-api-6869469c4c-9f9c2 to k3d-opspilot-server-0",
-     "age": "23s",
-     "age_s": 23
+     "message": "Successfully assigned shop/payments-api-6869469c4c-bw5dz to k3d-opspilot-server-0",
+     "age": "26s",
+     "age_s": 26
     }
    ],
    "truncated": false
@@ -1434,39 +1669,39 @@
    ],
    "addresses": [
     {
-     "ip": "10.42.0.30",
+     "ip": "10.42.0.158",
      "ready": true,
-     "pod": "redis-8466fc9977-k8mwl"
+     "pod": "redis-8466fc9977-vzf2d"
     }
    ],
    "truncated": false
   },
-  "{\"args\":{\"name\":\"redis-8466fc9977-k8mwl\",\"namespace\":\"shop\",\"previous\":false,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
-   "pod": "redis-8466fc9977-k8mwl",
+  "{\"args\":{\"name\":\"redis-8466fc9977-vzf2d\",\"namespace\":\"shop\",\"previous\":false,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
+   "pod": "redis-8466fc9977-vzf2d",
    "previous": false,
    "tail_lines": 200,
    "line_count": 7,
    "lines": [
-    "1:C 07 Oct 2026 06:06:33.240 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo",
-    "1:C 07 Oct 2026 06:06:33.240 * Redis version=7.4.11, bits=64, commit=00000000, modified=0, pid=1, just started",
-    "1:C 07 Oct 2026 06:06:33.240 * Configuration loaded",
-    "1:M 07 Oct 2026 06:06:33.240 * monotonic clock: POSIX clock_gettime",
-    "1:M 07 Oct 2026 06:06:33.241 * Running mode=standalone, port=6379.",
-    "1:M 07 Oct 2026 06:06:33.241 * Server initialized",
-    "1:M 07 Oct 2026 06:06:33.241 * Ready to accept connections tcp"
+    "1:C 08 Oct 2026 01:29:44.171 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo",
+    "1:C 08 Oct 2026 01:29:44.171 * Redis version=7.4.11, bits=64, commit=00000000, modified=0, pid=1, just started",
+    "1:C 08 Oct 2026 01:29:44.171 * Configuration loaded",
+    "1:M 08 Oct 2026 01:29:44.171 * monotonic clock: POSIX clock_gettime",
+    "1:M 08 Oct 2026 01:29:44.172 * Running mode=standalone, port=6379.",
+    "1:M 08 Oct 2026 01:29:44.172 * Server initialized",
+    "1:M 08 Oct 2026 01:29:44.172 * Ready to accept connections tcp"
    ],
    "truncated": false
   },
-  "{\"args\":{\"name\":\"redis-8466fc9977-k8mwl\",\"namespace\":\"shop\",\"previous\":true,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
+  "{\"args\":{\"name\":\"redis-8466fc9977-vzf2d\",\"namespace\":\"shop\",\"previous\":true,\"tail_lines\":200},\"tool\":\"get_pod_logs\"}": {
    "error": {
     "type": "bad_request",
-    "message": "previous terminated container \"redis\" in pod \"redis-8466fc9977-k8mwl\" not found",
+    "message": "previous terminated container \"redis\" in pod \"redis-8466fc9977-vzf2d\" not found",
     "hint": "For previous=true the container must have restarted at least once.",
     "status": 400
    }
   },
-  "{\"args\":{\"name\":\"redis-8466fc9977-k8mwl\",\"namespace\":\"shop\"},\"tool\":\"describe_pod\"}": {
-   "pod": "redis-8466fc9977-k8mwl",
+  "{\"args\":{\"name\":\"redis-8466fc9977-vzf2d\",\"namespace\":\"shop\"},\"tool\":\"describe_pod\"}": {
+   "pod": "redis-8466fc9977-vzf2d",
    "namespace": "shop",
    "phase": "Running",
    "ready": true,
@@ -1484,7 +1719,7 @@
      "restartCount": 0,
      "state": {
       "running": {
-       "startedAt": "2026-10-07T06:06:32+00:00"
+       "startedAt": "2026-10-08T01:29:44+00:00"
       }
      },
      "lastState": {},
@@ -1514,13 +1749,13 @@
      },
      "volumeMounts": [
       "data:/data",
-      "kube-api-access-957tg:/var/run/secrets/kubernetes.io/serviceaccount"
+      "kube-api-access-rsz42:/var/run/secrets/kubernetes.io/serviceaccount"
      ]
     }
    ],
    "volumes": [
     "data (empty_dir)",
-    "kube-api-access-957tg (projected)"
+    "kube-api-access-rsz42 (projected)"
    ],
    "conditions": [
     {
@@ -1547,48 +1782,39 @@
    "events": [
     {
      "type": "Normal",
-     "reason": "Pulled",
-     "object": "Pod/redis-8466fc9977-k8mwl",
-     "count": 1,
-     "message": "Container image \"redis:7-alpine\" already present on machine and can be accessed by the pod",
-     "age": "19m",
-     "age_s": 1166
-    },
-    {
-     "type": "Normal",
-     "reason": "Created",
-     "object": "Pod/redis-8466fc9977-k8mwl",
-     "count": 1,
-     "message": "Container created",
-     "age": "19m",
-     "age_s": 1166
-    },
-    {
-     "type": "Normal",
      "reason": "Started",
-     "object": "Pod/redis-8466fc9977-k8mwl",
+     "object": "Pod/redis-8466fc9977-vzf2d",
      "count": 1,
      "message": "Container started",
-     "age": "19m",
-     "age_s": 1166
+     "age": "6m",
+     "age_s": 364
     },
     {
      "type": "Normal",
      "reason": "Scheduled",
-     "object": "Pod/redis-8466fc9977-k8mwl",
+     "object": "Pod/redis-8466fc9977-vzf2d",
      "count": 1,
-     "message": "Successfully assigned shop/redis-8466fc9977-k8mwl to k3d-opspilot-server-0",
-     "age": "19m",
-     "age_s": 1167
+     "message": "Successfully assigned shop/redis-8466fc9977-vzf2d to k3d-opspilot-server-0",
+     "age": "6m",
+     "age_s": 364
     },
     {
-     "type": "Warning",
-     "reason": "FailedScheduling",
-     "object": "Pod/redis-8466fc9977-k8mwl",
+     "type": "Normal",
+     "reason": "Pulled",
+     "object": "Pod/redis-8466fc9977-vzf2d",
      "count": 1,
-     "message": "0/1 nodes are available: 1 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling.",
-     "age": "19m",
-     "age_s": 1168
+     "message": "Container image \"redis:7-alpine\" already present on machine and can be accessed by the pod",
+     "age": "6m",
+     "age_s": 365
+    },
+    {
+     "type": "Normal",
+     "reason": "Created",
+     "object": "Pod/redis-8466fc9977-vzf2d",
+     "count": 1,
+     "message": "Container created",
+     "age": "6m",
+     "age_s": 365
     }
    ],
    "truncated": false
@@ -1611,272 +1837,263 @@
     {
      "type": "Warning",
      "reason": "Unhealthy",
-     "object": "Pod/orders-api-7bd8ccc96d-wdbnd",
-     "count": 6,
+     "object": "Pod/orders-api-7bd8ccc96d-x6gxh",
+     "count": 19,
      "message": "Readiness probe failed: HTTP probe failed with statuscode: 503",
-     "age": "1s",
-     "age_s": 1
-    },
-    {
-     "type": "Warning",
-     "reason": "BackOff",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
-     "count": 6,
-     "message": "Back-off restarting failed container app in pod payments-api-6869469c4c-9f9c2_shop(b59ffcfc-7cd4-4165-82ef-871a98c9ab61)",
      "age": "4s",
      "age_s": 4
     },
     {
      "type": "Warning",
-     "reason": "Unhealthy",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "reason": "BackOff",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 4,
-     "message": "Readiness probe failed: Get \"http://10.42.0.42:8080/readyz\": dial tcp 10.42.0.42:8080: connect: connection refused",
+     "message": "Back-off restarting failed container app in pod payments-api-6869469c4c-bw5dz_shop(c2d4d4cd-7ace-4022-b799-d06908ececb6)",
+     "age": "6s",
+     "age_s": 6
+    },
+    {
+     "type": "Warning",
+     "reason": "Unhealthy",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
+     "count": 1,
+     "message": "Liveness probe failed: Get \"http://10.42.0.175:8080/healthz\": dial tcp 10.42.0.175:8080: connect: connection refused",
+     "age": "6s",
+     "age_s": 6
+    },
+    {
+     "type": "Warning",
+     "reason": "Unhealthy",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
+     "count": 5,
+     "message": "Readiness probe failed: Get \"http://10.42.0.175:8080/readyz\": dial tcp 10.42.0.175:8080: connect: connection refused",
      "age": "7s",
      "age_s": 7
     },
     {
      "type": "Normal",
      "reason": "Pulled",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 3,
      "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
-     "age": "8s",
-     "age_s": 8
+     "age": "9s",
+     "age_s": 9
     },
     {
      "type": "Normal",
      "reason": "Created",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 3,
      "message": "Container created",
-     "age": "8s",
-     "age_s": 8
+     "age": "9s",
+     "age_s": 9
     },
     {
      "type": "Normal",
      "reason": "Started",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 3,
      "message": "Container started",
-     "age": "8s",
-     "age_s": 8
+     "age": "9s",
+     "age_s": 9
     },
     {
      "type": "Normal",
      "reason": "Scheduled",
-     "object": "Pod/payments-api-6869469c4c-9f9c2",
+     "object": "Pod/payments-api-6869469c4c-bw5dz",
      "count": 1,
-     "message": "Successfully assigned shop/payments-api-6869469c4c-9f9c2 to k3d-opspilot-server-0",
-     "age": "24s",
-     "age_s": 24
+     "message": "Successfully assigned shop/payments-api-6869469c4c-bw5dz to k3d-opspilot-server-0",
+     "age": "26s",
+     "age_s": 26
     },
     {
      "type": "Normal",
      "reason": "Killing",
-     "object": "Pod/payments-api-598847d4cb-j6f42",
+     "object": "Pod/payments-api-598847d4cb-88xsn",
      "count": 1,
      "message": "Stopping container app",
-     "age": "24s",
-     "age_s": 24
+     "age": "27s",
+     "age_s": 27
     },
     {
      "type": "Normal",
      "reason": "SuccessfulDelete",
      "object": "ReplicaSet/payments-api-598847d4cb",
-     "count": 1,
-     "message": "Deleted pod: payments-api-598847d4cb-j6f42",
-     "age": "24s",
-     "age_s": 24
+     "count": 9,
+     "message": "(combined from similar events): Deleted pod: payments-api-598847d4cb-88xsn",
+     "age": "27s",
+     "age_s": 27
     },
     {
      "type": "Normal",
      "reason": "SuccessfulCreate",
      "object": "ReplicaSet/payments-api-6869469c4c",
      "count": 1,
-     "message": "Created pod: payments-api-6869469c4c-9f9c2",
-     "age": "24s",
-     "age_s": 24
+     "message": "Created pod: payments-api-6869469c4c-bw5dz",
+     "age": "27s",
+     "age_s": 27
     },
     {
      "type": "Normal",
      "reason": "ScalingReplicaSet",
      "object": "Deployment/payments-api",
-     "count": 1,
+     "count": 15,
      "message": "Scaled down replica set payments-api-598847d4cb from 1 to 0",
-     "age": "24s",
-     "age_s": 24
-    },
-    {
-     "type": "Normal",
-     "reason": "ScalingReplicaSet",
-     "object": "Deployment/payments-api",
-     "count": 1,
-     "message": "Scaled up replica set payments-api-6869469c4c from 0 to 1",
-     "age": "24s",
-     "age_s": 24
+     "age": "27s",
+     "age_s": 27
     },
     {
      "type": "Warning",
      "reason": "Unhealthy",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
      "count": 2,
-     "message": "Readiness probe failed: Get \"http://10.42.0.41:8080/readyz\": dial tcp 10.42.0.41:8080: connect: connection refused",
-     "age": "33s",
-     "age_s": 33
-    },
-    {
-     "type": "Normal",
-     "reason": "Created",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
-     "count": 1,
-     "message": "Container created",
-     "age": "34s",
-     "age_s": 34
-    },
-    {
-     "type": "Normal",
-     "reason": "Started",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
-     "count": 1,
-     "message": "Container started",
-     "age": "34s",
-     "age_s": 34
-    },
-    {
-     "type": "Normal",
-     "reason": "Scheduled",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
-     "count": 1,
-     "message": "Successfully assigned shop/inventory-api-96b9b8944-t6hh2 to k3d-opspilot-server-0",
-     "age": "34s",
-     "age_s": 34
-    },
-    {
-     "type": "Normal",
-     "reason": "SuccessfulDelete",
-     "object": "ReplicaSet/inventory-api-695b744c86",
-     "count": 1,
-     "message": "Deleted pod: inventory-api-695b744c86-5gx48",
+     "message": "Readiness probe failed: Get \"http://10.42.0.174:8080/readyz\": dial tcp 10.42.0.174:8080: connect: connection refused",
      "age": "35s",
      "age_s": 35
     },
     {
      "type": "Normal",
      "reason": "Pulled",
-     "object": "Pod/inventory-api-96b9b8944-t6hh2",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
      "count": 1,
      "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
-     "age": "35s",
-     "age_s": 35
+     "age": "36s",
+     "age_s": 36
+    },
+    {
+     "type": "Normal",
+     "reason": "Created",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
+     "count": 1,
+     "message": "Container created",
+     "age": "36s",
+     "age_s": 36
+    },
+    {
+     "type": "Normal",
+     "reason": "Started",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
+     "count": 1,
+     "message": "Container started",
+     "age": "36s",
+     "age_s": 36
+    },
+    {
+     "type": "Normal",
+     "reason": "Scheduled",
+     "object": "Pod/inventory-api-96b9b8944-4jglx",
+     "count": 1,
+     "message": "Successfully assigned shop/inventory-api-96b9b8944-4jglx to k3d-opspilot-server-0",
+     "age": "36s",
+     "age_s": 36
+    },
+    {
+     "type": "Normal",
+     "reason": "SuccessfulDelete",
+     "object": "ReplicaSet/inventory-api-78944985cb",
+     "count": 1,
+     "message": "Deleted pod: inventory-api-78944985cb-8lln2",
+     "age": "37s",
+     "age_s": 37
     },
     {
      "type": "Normal",
      "reason": "SuccessfulCreate",
      "object": "ReplicaSet/inventory-api-96b9b8944",
-     "count": 1,
-     "message": "Created pod: inventory-api-96b9b8944-t6hh2",
-     "age": "35s",
-     "age_s": 35
-    },
-    {
-     "type": "Normal",
-     "reason": "ScalingReplicaSet",
-     "object": "Deployment/inventory-api",
-     "count": 2,
-     "message": "Scaled up replica set inventory-api-96b9b8944 from 0 to 1",
-     "age": "35s",
-     "age_s": 35
-    },
-    {
-     "type": "Normal",
-     "reason": "ScalingReplicaSet",
-     "object": "Deployment/inventory-api",
-     "count": 1,
-     "message": "Scaled down replica set inventory-api-695b744c86 from 1 to 0",
-     "age": "35s",
-     "age_s": 35
+     "count": 6,
+     "message": "(combined from similar events): Created pod: inventory-api-96b9b8944-4jglx",
+     "age": "37s",
+     "age_s": 37
     },
     {
      "type": "Warning",
      "reason": "BackOff",
-     "object": "Pod/inventory-api-695b744c86-5gx48",
-     "count": 5,
-     "message": "Back-off restarting failed container app in pod inventory-api-695b744c86-5gx48_shop(a17985c4-aee8-4c28-b49f-a2e725f42d31)",
-     "age": "39s",
-     "age_s": 39
-    },
-    {
-     "type": "Warning",
-     "reason": "Unhealthy",
-     "object": "Pod/inventory-api-695b744c86-5gx48",
-     "count": 4,
-     "message": "Readiness probe failed: Get \"http://10.42.0.40:8080/readyz\": dial tcp 10.42.0.40:8080: connect: connection refused",
-     "age": "42s",
-     "age_s": 42
+     "object": "Pod/inventory-api-78944985cb-8lln2",
+     "count": 6,
+     "message": "Back-off restarting failed container app in pod inventory-api-78944985cb-8lln2_shop(1c7c02f4-3a1d-4049-92c4-35580ef677d6)",
+     "age": "41s",
+     "age_s": 41
     },
     {
      "type": "Normal",
      "reason": "Pulled",
-     "object": "Pod/inventory-api-695b744c86-5gx48",
+     "object": "Pod/inventory-api-78944985cb-8lln2",
      "count": 3,
      "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
-     "age": "44s",
-     "age_s": 44
+     "age": "49s",
+     "age_s": 49
     },
     {
      "type": "Normal",
      "reason": "Created",
-     "object": "Pod/inventory-api-695b744c86-5gx48",
+     "object": "Pod/inventory-api-78944985cb-8lln2",
      "count": 3,
      "message": "Container created",
-     "age": "44s",
-     "age_s": 44
+     "age": "49s",
+     "age_s": 49
     },
     {
      "type": "Normal",
      "reason": "Started",
-     "object": "Pod/inventory-api-695b744c86-5gx48",
+     "object": "Pod/inventory-api-78944985cb-8lln2",
      "count": 3,
      "message": "Container started",
-     "age": "44s",
-     "age_s": 44
+     "age": "49s",
+     "age_s": 49
     },
     {
      "type": "Normal",
      "reason": "Scheduled",
-     "object": "Pod/inventory-api-695b744c86-5gx48",
+     "object": "Pod/inventory-api-78944985cb-8lln2",
      "count": 1,
-     "message": "Successfully assigned shop/inventory-api-695b744c86-5gx48 to k3d-opspilot-server-0",
-     "age": "59s",
-     "age_s": 59
+     "message": "Successfully assigned shop/inventory-api-78944985cb-8lln2 to k3d-opspilot-server-0",
+     "age": "1m",
+     "age_s": 61
     },
     {
      "type": "Normal",
      "reason": "SuccessfulCreate",
-     "object": "ReplicaSet/inventory-api-695b744c86",
+     "object": "ReplicaSet/inventory-api-78944985cb",
      "count": 1,
-     "message": "Created pod: inventory-api-695b744c86-5gx48",
-     "age": "59s",
-     "age_s": 59
+     "message": "Created pod: inventory-api-78944985cb-8lln2",
+     "age": "1m",
+     "age_s": 62
     },
     {
      "type": "Normal",
      "reason": "Killing",
-     "object": "Pod/inventory-api-96b9b8944-ch62m",
+     "object": "Pod/inventory-api-96b9b8944-r7d5l",
      "count": 1,
      "message": "Stopping container app",
-     "age": "59s",
-     "age_s": 59
+     "age": "1m",
+     "age_s": 62
     },
     {
      "type": "Normal",
      "reason": "SuccessfulDelete",
      "object": "ReplicaSet/inventory-api-96b9b8944",
+     "count": 6,
+     "message": "(combined from similar events): Deleted pod: inventory-api-96b9b8944-r7d5l",
+     "age": "1m",
+     "age_s": 62
+    },
+    {
+     "type": "Warning",
+     "reason": "Unhealthy",
+     "object": "Pod/payments-api-598847d4cb-88xsn",
      "count": 1,
-     "message": "Deleted pod: inventory-api-96b9b8944-ch62m",
-     "age": "59s",
-     "age_s": 59
+     "message": "Readiness probe failed: Get \"http://10.42.0.172:8080/readyz\": dial tcp 10.42.0.172:8080: connect: connection refused",
+     "age": "1m",
+     "age_s": 70
+    },
+    {
+     "type": "Normal",
+     "reason": "Pulled",
+     "object": "Pod/payments-api-598847d4cb-88xsn",
+     "count": 1,
+     "message": "Container image \"opspilot-demo-svc:dev\" already present on machine and can be accessed by the pod",
+     "age": "1m",
+     "age_s": 71
     }
    ],
    "truncated": true,
@@ -1886,37 +2103,37 @@
    "namespace": "shop",
    "pods": [
     {
-     "name": "inventory-api-96b9b8944-t6hh2",
+     "name": "inventory-api-96b9b8944-4jglx",
      "phase": "Running",
      "ready": "1/1",
      "restarts": 0,
-     "age": "34s",
+     "age": "37s",
      "node": "k3d-opspilot-server-0"
     },
     {
-     "name": "orders-api-7bd8ccc96d-wdbnd",
+     "name": "orders-api-7bd8ccc96d-x6gxh",
      "phase": "Running",
      "ready": "0/1",
      "restarts": 0,
-     "age": "1m",
+     "age": "2m",
      "node": "k3d-opspilot-server-0"
     },
     {
-     "name": "payments-api-6869469c4c-9f9c2",
+     "name": "payments-api-6869469c4c-bw5dz",
      "phase": "Running",
      "ready": "0/1",
      "restarts": 2,
-     "reason": "CrashLoopBackOff",
+     "reason": "OOMKilled",
      "last_reason": "OOMKilled",
-     "age": "23s",
+     "age": "27s",
      "node": "k3d-opspilot-server-0"
     },
     {
-     "name": "redis-8466fc9977-k8mwl",
+     "name": "redis-8466fc9977-vzf2d",
      "phase": "Running",
      "ready": "1/1",
      "restarts": 0,
-     "age": "1d",
+     "age": "6m",
      "node": "k3d-opspilot-server-0"
     }
    ],
@@ -1984,13 +2201,13 @@
      "kubelet": "v1.35.5+k3s1",
      "capacity": {
       "cpu": "8",
-      "ephemeral-storage": "68864Mi",
+      "ephemeral-storage": "68736Mi",
       "memory": "4082464Ki",
       "pods": "110"
      },
      "allocatable": {
       "cpu": "8",
-      "ephemeral-storage": "68598680727",
+      "ephemeral-storage": "68471173886",
       "memory": "4082464Ki",
       "pods": "110"
      },

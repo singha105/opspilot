@@ -103,6 +103,31 @@ def scenario_hash(path: Path | None) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path else None
 
 
+def fixture_problems(scenarios_dir: Path, fixtures_dir: Path) -> list[str]:
+    """Why the fixtures do not match the scenarios (empty list = every fixture is current).
+
+    Every scenario needs a fixture recorded from the current version of its file (same
+    SHA-256), a healthy baseline must exist, and no fixture may be left without a scenario.
+    """
+    problems = []
+    scenario_files = {p.stem: p for p in sorted(scenarios_dir.glob("*.yaml"))}
+    fixtures = {p.stem: p for p in sorted(fixtures_dir.glob("*.json"))}
+    if HEALTHY not in fixtures:
+        problems.append("missing the healthy baseline fixture")
+    for fixture_id, path in scenario_files.items():
+        if fixture_id not in fixtures:
+            problems.append(f"{fixture_id}: no fixture; run opspilot faults record {fixture_id}")
+            continue
+        meta = json.loads(fixtures[fixture_id].read_text())["metadata"]
+        if meta.get("scenario_sha256") != scenario_hash(path):
+            problems.append(
+                f"{fixture_id}: fixture was recorded from another version of the scenario file"
+            )
+    for fixture_id in sorted(set(fixtures) - set(scenario_files) - {HEALTHY}):
+        problems.append(f"{fixture_id}: fixture without a scenario")
+    return problems
+
+
 def record_fixture(
     scenario: Scenario | None,
     scenario_path: Path | None,

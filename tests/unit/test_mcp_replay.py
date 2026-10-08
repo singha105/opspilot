@@ -99,3 +99,40 @@ def test_canonical_keys() -> None:
     }
     with pytest.raises(AttributeError):
         ReplayBackend(FIXTURES / "healthy.json").delete_pod  # noqa: B018
+
+
+def test_fixture_problems(tmp_path: Path) -> None:
+    import hashlib
+
+    from opspilot.faults.recorder import fixture_problems
+
+    scenarios, fixtures = tmp_path / "s", tmp_path / "f"
+    scenarios.mkdir()
+    fixtures.mkdir()
+    (scenarios / "a.yaml").write_text("id: a\n")
+    (scenarios / "b.yaml").write_text("id: b\n")
+
+    def write(name: str, sha: str | None) -> None:
+        meta = {"metadata": {"scenario_sha256": sha}, "calls": {}}
+        (fixtures / f"{name}.json").write_text(json.dumps(meta))
+
+    write("a", hashlib.sha256(b"id: a\n").hexdigest())
+    write("b", "stale")
+    write("orphan", None)
+    assert fixture_problems(scenarios, fixtures) == [
+        "missing the healthy baseline fixture",
+        "b: fixture was recorded from another version of the scenario file",
+        "orphan: fixture without a scenario",
+    ]
+    write("healthy", None)
+    write("b", hashlib.sha256(b"id: b\n").hexdigest())
+    (fixtures / "orphan.json").unlink()
+    assert fixture_problems(scenarios, fixtures) == []
+    (scenarios / "c.yaml").write_text("id: c\n")
+    assert fixture_problems(scenarios, fixtures) == ["c: no fixture; run opspilot faults record c"]
+
+
+def test_repo_fixtures_match_their_scenarios() -> None:
+    from opspilot.faults.recorder import fixture_problems
+
+    assert fixture_problems(ROOT / "faults" / "scenarios", FIXTURES) == []

@@ -109,6 +109,21 @@ def verify(
         raise typer.Exit(code=1)
 
 
+@app.command("check-fixtures")
+def check_fixtures() -> None:
+    """Fail unless every scenario has a fixture recorded from its current file (CI check)."""
+    from opspilot.faults.recorder import fixture_problems
+
+    settings = get_settings()
+    problems = fixture_problems(settings.scenarios_dir, settings.fixtures_dir)
+    for problem in problems:
+        console.print(f"[red]{problem}[/red]")
+    if problems:
+        raise typer.Exit(code=1)
+    count = len(list(settings.fixtures_dir.glob("*.json")))
+    console.print(f"{count} fixtures match their scenarios")
+
+
 @app.command()
 def record(
     scenario_id: Annotated[
