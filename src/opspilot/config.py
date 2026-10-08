@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     retrieval_alpha: float = Field(default=0.5, ge=0.0, le=1.0)
     retrieval_rerank: bool = False
     retrieval_k: int = Field(default=6, ge=1, le=20)
+    # The agent reranks: about 1 s per incident against ~2 min of model time (ADR-0012).
+    agent_rerank: bool = True
 
     # Optional Pinecone (free Starter tier). Read from PINECONE_API_KEY as well.
     pinecone_api_key: SecretStr | None = Field(

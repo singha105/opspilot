@@ -114,11 +114,13 @@ class StubRetriever:
     def __init__(self, doc_ids: tuple[str, ...] = ("rb-oom-killed", "rb-bad-rollout")) -> None:
         self.doc_ids = doc_ids
         self.queries: list[Any] = []
+        self.options: list[dict[str, Any]] = []
 
     def retrieve(self, query: Any, k: int = 6, **kwargs: Any) -> Any:
         from opspilot.rag.models import RetrievalResult, RetrievedChunk
 
         self.queries.append(query)
+        self.options.append({"k": k, **kwargs})
         chunks = [
             RetrievedChunk(
                 chunk_id=f"c{i}",

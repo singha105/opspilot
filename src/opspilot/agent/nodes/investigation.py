@@ -25,7 +25,7 @@ from opspilot.agent.nodes.common import (
 )
 from opspilot.agent.prompts import untrusted
 from opspilot.agent.state import IncidentState, SecurityFlag
-from opspilot.agent.toolbox import INVESTIGATION_TOOLS
+from opspilot.agent.toolbox import INVESTIGATION_TOOLS, READ_TOOLS
 from opspilot.llm import StructuredOutputError, astructured
 from opspilot.mcp_servers.k8s_readonly.replay import call_key
 from opspilot.models import Alert
@@ -164,7 +164,13 @@ async def retrieve(state: IncidentState, deps: AgentDeps) -> dict[str, Any]:
     try:
         retriever = deps.retriever()
         try:
-            result = await asyncio.to_thread(retriever.retrieve, queries, 6)
+            result = await asyncio.to_thread(
+                retriever.retrieve,
+                queries,
+                deps.settings.retrieval_k,
+                mode=deps.settings.retrieval_mode,
+                rerank=deps.settings.agent_rerank,
+            )
         finally:
             close = getattr(getattr(retriever, "store", None), "close", None)
             if callable(close):
@@ -345,7 +351,9 @@ async def investigate(state: IncidentState, deps: AgentDeps) -> dict[str, Any]:
     assert state.triage is not None
     template = prompt("investigate")
     deps.events.emit("prompt", node="investigate", version=template.version, sha256=template.sha256)
-    specs = [*deps.toolbox.specs(INVESTIGATION_TOOLS), FINISH_SPEC]
+    # Without RAG the knowledge-base tool goes too, so the ablation is tools-only.
+    names_wanted = INVESTIGATION_TOOLS if state.use_rag else READ_TOOLS
+    specs = [*deps.toolbox.specs(names_wanted), FINISH_SPEC]
     names = [s["function"]["name"] for s in specs]
     allowed = set(names)
     native = deps.settings.agent_tool_strategy == "native"

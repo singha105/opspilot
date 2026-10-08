@@ -156,6 +156,24 @@ def test_retrieve_closes_the_store_and_reads_documents_as_documents() -> None:
     assert out["security_flags"] == []  # commands and links are normal in runbooks
 
 
+def test_retrieve_uses_the_configured_mode_and_reranks_by_default() -> None:
+    stub = StubRetriever()
+    asyncio.run(inv.retrieve(state(), deps(None, retriever=lambda: stub)))
+    assert stub.options == [{"k": 6, "mode": "hybrid", "rerank": True}]
+    dense = Settings(_env_file=None, retrieval_mode="dense", agent_rerank=False)  # type: ignore[call-arg]
+    stub = StubRetriever()
+    asyncio.run(inv.retrieve(state(), deps(None, retriever=lambda: stub, settings=dense)))
+    assert stub.options == [{"k": 6, "mode": "dense", "rerank": False}]
+
+
+def test_without_rag_the_knowledge_tool_is_not_offered(tmp_path: Path) -> None:
+    finish = tool_call("finish_investigation", {"reason": "done"})
+    _, model = run_investigate("oom-payments", [finish], tmp_path, use_rag=False)
+    assert "- search_knowledge(" not in str(model.prompts[0][-1].content)
+    _, model = run_investigate("oom-payments", [finish], tmp_path)
+    assert "- search_knowledge(" in str(model.prompts[0][-1].content)
+
+
 def test_retrieve_failure_continues_without_the_knowledge_base() -> None:
     def unreachable() -> Any:
         raise ConnectionError("store down")
@@ -181,13 +199,14 @@ def run_investigate(
     tmp_path: Path,
     budget: int = 8,
     settings: Settings | None = None,
+    use_rag: bool = True,
 ) -> tuple[dict[str, Any], Any]:
     async def go() -> dict[str, Any]:
         async with InProcessToolBox(*replay_servers(fixture, tmp_path)) as toolbox:
             model, factory = models(*replies)
             extra: dict[str, Any] = {"settings": settings} if settings else {}
             d = deps(toolbox, factory, budgets=Budgets(tool_calls=budget), **extra)
-            result = await inv.investigate(state(), d)
+            result = await inv.investigate(state(use_rag=use_rag), d)
             result["_model"] = model
             return result
 

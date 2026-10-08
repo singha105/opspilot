@@ -145,7 +145,7 @@ async def session(
         def retriever() -> Any:
             from opspilot.rag.pipeline import build_retriever
 
-            return build_retriever(store)  # type: ignore[arg-type]
+            return build_retriever(store, rerank=settings.agent_rerank)  # type: ignore[arg-type]
 
         pool = LLMPool(settings)
         deps = AgentDeps(
