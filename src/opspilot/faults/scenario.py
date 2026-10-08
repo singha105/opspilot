@@ -21,49 +21,193 @@ class Target(_Strict):
     container: str = "app"
 
 
-class SetEnv(_Strict):
+class _OnDeployment(_Strict):
+    """An injection that edits a Deployment: the scenario target unless ``deployment`` is set.
+
+    ``container`` defaults to the target's container, or to ``app`` on another Deployment.
+    """
+
+    deployment: str | None = None
+    container: str | None = None
+
+
+class SetEnv(_OnDeployment):
     type: Literal["set_env"]
     env: dict[str, str] = Field(min_length=1)
 
 
-class UnsetEnv(_Strict):
+class UnsetEnv(_OnDeployment):
     type: Literal["unset_env"]
     names: list[str] = Field(min_length=1)
 
 
-class SetImage(_Strict):
+class SetImage(_OnDeployment):
     type: Literal["set_image"]
     image: str
 
 
-class SetProbe(_Strict):
+class SetProbe(_OnDeployment):
+    """Change an HTTP probe: its path, port and/or timing."""
+
     type: Literal["set_probe"]
     probe: Literal["readiness", "liveness"]
-    path: str = Field(pattern=r"^/")
+    path: str | None = Field(default=None, pattern=r"^/")
+    port: int | str | None = None
+    initial_delay_s: int | None = Field(default=None, ge=0)
+    period_s: int | None = Field(default=None, ge=1)
+    failure_threshold: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def _changes_something(self) -> "SetProbe":
+        fields = (self.path, self.port, self.initial_delay_s, self.period_s, self.failure_threshold)
+        if all(v is None for v in fields):
+            raise ValueError("set_probe needs at least one change")
+        return self
 
 
-class Scale(_Strict):
+class Scale(_OnDeployment):
     type: Literal["scale"]
     replicas: int = Field(ge=0)
 
 
-Injection = Annotated[SetEnv | UnsetEnv | SetImage | SetProbe | Scale, Field(discriminator="type")]
+class SetResources(_OnDeployment):
+    """Merge resource requests/limits (keys ``cpu`` and ``memory``)."""
+
+    type: Literal["set_resources"]
+    requests: dict[Literal["cpu", "memory"], str] = Field(default_factory=dict)
+    limits: dict[Literal["cpu", "memory"], str] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _changes_something(self) -> "SetResources":
+        if not self.requests and not self.limits:
+            raise ValueError("set_resources needs requests or limits")
+        return self
+
+
+class SetCommand(_OnDeployment):
+    """Override the container's command and/or args."""
+
+    type: Literal["set_command"]
+    command: list[str] | None = None
+    args: list[str] | None = None
+
+    @model_validator(mode="after")
+    def _changes_something(self) -> "SetCommand":
+        if self.command is None and self.args is None:
+            raise ValueError("set_command needs command or args")
+        return self
+
+
+class AddInitContainer(_OnDeployment):
+    """Add an init container running the target's image (unless ``image`` is set)."""
+
+    type: Literal["add_init_container"]
+    name: str
+    args: list[str] = Field(min_length=1)
+    image: str | None = None
+
+
+class AddEnvFrom(_OnDeployment):
+    """Load every key of a ConfigMap as environment variables (``envFrom``)."""
+
+    type: Literal["add_env_from"]
+    configmap: str
+
+
+class SetSecretEnv(_OnDeployment):
+    """Set an environment variable from a Secret key (``secretKeyRef``)."""
+
+    type: Literal["set_secret_env"]
+    name: str
+    secret: str
+    key: str
+
+
+class SetAffinity(_OnDeployment):
+    """Constrain scheduling with a nodeSelector and/or required node affinity."""
+
+    type: Literal["set_affinity"]
+    node_selector: dict[str, str] = Field(default_factory=dict)
+    required_node_labels: dict[str, list[str]] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _constrains_something(self) -> "SetAffinity":
+        if not self.node_selector and not self.required_node_labels:
+            raise ValueError("set_affinity needs node_selector or required_node_labels")
+        return self
+
+
+AccessMode = Literal["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"]
+_RWO: AccessMode = "ReadWriteOnce"
+
+
+class AddPvc(_OnDeployment):
+    """Create a PersistentVolumeClaim and mount it into the container."""
+
+    type: Literal["add_pvc"]
+    name: str
+    mount_path: str = Field(pattern=r"^/")
+    storage_class: str | None = None
+    access_modes: list[AccessMode] = Field(default_factory=lambda: [_RWO])
+    size: str = "64Mi"
+
+
+class PatchService(_Strict):
+    """Change a Service (the target's Service unless ``service`` is set)."""
+
+    type: Literal["patch_service"]
+    service: str | None = None
+    selector: dict[str, str] | None = None
+    target_port: int | str | None = None
+
+    @model_validator(mode="after")
+    def _changes_something(self) -> "PatchService":
+        if self.selector is None and self.target_port is None:
+            raise ValueError("patch_service needs selector or target_port")
+        return self
+
+
+DeploymentInjection = (
+    SetEnv
+    | UnsetEnv
+    | SetImage
+    | SetProbe
+    | Scale
+    | SetResources
+    | SetCommand
+    | AddInitContainer
+    | AddEnvFrom
+    | SetSecretEnv
+    | SetAffinity
+    | AddPvc
+)
+Injection = Annotated[DeploymentInjection | PatchService, Field(discriminator="type")]
 
 
 class ExpectedSymptom(_Strict):
     """What the cluster must show once the fault has taken effect.
 
-    Every listed condition must hold: a waiting/terminated reason on the
-    target's pods, and/or Deployments that have fewer ready replicas than desired.
+    Every listed condition must hold: a waiting/terminated/scheduling reason on the
+    target's pods, Deployments with fewer ready replicas than desired, a target pod
+    restarted at least ``min_restarts`` times, and Services that route to no ready
+    pod port.
     """
 
     pod_reason_any_of: list[str] = Field(default_factory=list)
     not_ready_deployments: list[str] = Field(default_factory=list)
+    min_restarts: int = Field(default=0, ge=0)
+    broken_services: list[str] = Field(default_factory=list)
     timeout_s: int = Field(default=150, gt=0)
 
     @model_validator(mode="after")
     def _needs_a_condition(self) -> "ExpectedSymptom":
-        if not self.pod_reason_any_of and not self.not_ready_deployments:
+        conditions = (
+            self.pod_reason_any_of,
+            self.not_ready_deployments,
+            self.min_restarts,
+            self.broken_services,
+        )
+        if not any(conditions):
             raise ValueError("expected_symptom needs at least one condition")
         return self
 
@@ -99,6 +243,21 @@ class Scenario(_Strict):
         if self.category != self.expected.root_cause_category:
             raise ValueError("category must equal expected.root_cause_category")
         return self
+
+    @property
+    def deployments(self) -> list[str]:
+        """Every Deployment the injections change (target first)."""
+        names = [self.target.name]
+        for injection in self.inject:
+            name = getattr(injection, "deployment", None)
+            if name and name not in names:
+                names.append(name)
+        return names
+
+    @property
+    def services(self) -> list[str]:
+        """Every Service the injections change."""
+        return [i.service or self.target.name for i in self.inject if isinstance(i, PatchService)]
 
 
 def load_scenario(path: Path) -> Scenario:

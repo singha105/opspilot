@@ -16,19 +16,29 @@ import yaml
 from kubernetes import client
 
 from opspilot.faults.scenario import (
+    AddEnvFrom,
+    AddInitContainer,
+    AddPvc,
+    DeploymentInjection,
     ExpectedSymptom,
-    Injection,
+    PatchService,
     Scale,
     Scenario,
+    SetAffinity,
+    SetCommand,
     SetEnv,
     SetImage,
     SetProbe,
+    SetResources,
+    SetSecretEnv,
     UnsetEnv,
 )
 from opspilot.logging import get_logger
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 JsonDict = dict[str, Any]
+
+FAULT_LABEL = "opspilot.dev/fault"
 
 log = get_logger(__name__)
 
@@ -49,10 +59,29 @@ def find_container(deployment: JsonDict, name: str) -> JsonDict:
     raise KeyError(f"container {name!r} not found in {deployment['metadata']['name']}")
 
 
-def apply_injection(deployment: JsonDict, injection: Injection, container_name: str) -> None:
+def apply_injection(
+    deployment: JsonDict, injection: DeploymentInjection, container_name: str
+) -> None:
     """Mutate a Deployment manifest (camelCase JSON) in place to inject one fault."""
+    pod_spec: JsonDict = deployment["spec"]["template"]["spec"]
     if isinstance(injection, Scale):
         deployment["spec"]["replicas"] = injection.replicas
+        return
+    if isinstance(injection, SetAffinity):
+        if injection.node_selector:
+            pod_spec["nodeSelector"] = dict(injection.node_selector)
+        if injection.required_node_labels:
+            terms = [
+                {"key": k, "operator": "In", "values": v}
+                for k, v in injection.required_node_labels.items()
+            ]
+            pod_spec["affinity"] = {
+                "nodeAffinity": {
+                    "requiredDuringSchedulingIgnoredDuringExecution": {
+                        "nodeSelectorTerms": [{"matchExpressions": terms}]
+                    }
+                }
+            }
         return
     container = find_container(deployment, container_name)
     if isinstance(injection, SetEnv):
@@ -65,17 +94,104 @@ def apply_injection(deployment: JsonDict, injection: Injection, container_name: 
     elif isinstance(injection, SetImage):
         container["image"] = injection.image
     elif isinstance(injection, SetProbe):
-        key = f"{injection.probe}Probe"
-        probe = container.get(key)
-        if not probe or "httpGet" not in probe:
-            raise ValueError(f"container {container_name!r} has no HTTP {injection.probe} probe")
+        _set_probe(container, injection, container_name)
+    elif isinstance(injection, SetResources):
+        resources = container.setdefault("resources", {})
+        for key, values in (("requests", injection.requests), ("limits", injection.limits)):
+            if values:
+                resources.setdefault(key, {}).update(values)
+    elif isinstance(injection, SetCommand):
+        if injection.command is not None:
+            container["command"] = list(injection.command)
+        if injection.args is not None:
+            container["args"] = list(injection.args)
+    elif isinstance(injection, AddInitContainer):
+        init = {
+            "name": injection.name,
+            "image": injection.image or container["image"],
+            "imagePullPolicy": "IfNotPresent",
+            "args": list(injection.args),
+            "env": [e for e in container.get("env") or [] if e["name"] == "SERVICE_NAME"],
+            "resources": {
+                "requests": {"cpu": "10m", "memory": "16Mi"},
+                "limits": {"memory": "64Mi"},
+            },
+        }
+        if "securityContext" in container:
+            init["securityContext"] = container["securityContext"]
+        pod_spec["initContainers"] = [*(pod_spec.get("initContainers") or []), init]
+    elif isinstance(injection, AddEnvFrom):
+        container["envFrom"] = [
+            *(container.get("envFrom") or []),
+            {"configMapRef": {"name": injection.configmap}},
+        ]
+    elif isinstance(injection, SetSecretEnv):
+        env = [e for e in container.get("env") or [] if e["name"] != injection.name]
+        ref = {"secretKeyRef": {"name": injection.secret, "key": injection.key}}
+        container["env"] = [*env, {"name": injection.name, "valueFrom": ref}]
+    elif isinstance(injection, AddPvc):
+        volume = injection.name
+        pod_spec["volumes"] = [
+            *(pod_spec.get("volumes") or []),
+            {"name": volume, "persistentVolumeClaim": {"claimName": injection.name}},
+        ]
+        container["volumeMounts"] = [
+            *(container.get("volumeMounts") or []),
+            {"name": volume, "mountPath": injection.mount_path},
+        ]
+
+
+def _set_probe(container: JsonDict, injection: SetProbe, container_name: str) -> None:
+    probe = container.get(f"{injection.probe}Probe")
+    if not probe or "httpGet" not in probe:
+        raise ValueError(f"container {container_name!r} has no HTTP {injection.probe} probe")
+    if injection.path is not None:
         probe["httpGet"]["path"] = injection.path
+    if injection.port is not None:
+        probe["httpGet"]["port"] = injection.port
+    for field, key in (
+        ("initial_delay_s", "initialDelaySeconds"),
+        ("period_s", "periodSeconds"),
+        ("failure_threshold", "failureThreshold"),
+    ):
+        value = getattr(injection, field)
+        if value is not None:
+            probe[key] = value
+
+
+def pvc_manifest(injection: AddPvc, scenario_id: str) -> JsonDict:
+    """The PersistentVolumeClaim an ``add_pvc`` injection creates (labelled for reset)."""
+    spec: JsonDict = {
+        "accessModes": list(injection.access_modes),
+        "resources": {"requests": {"storage": injection.size}},
+    }
+    if injection.storage_class is not None:
+        spec["storageClassName"] = injection.storage_class
+    return {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "metadata": {"name": injection.name, "labels": {FAULT_LABEL: scenario_id}},
+        "spec": spec,
+    }
+
+
+def apply_service_patch(service: JsonDict, patch: PatchService) -> None:
+    """Mutate a Service manifest in place: its selector and/or every port's targetPort."""
+    if patch.selector is not None:
+        service["spec"]["selector"] = dict(patch.selector)
+    if patch.target_port is not None:
+        for port in service["spec"].get("ports") or []:
+            port["targetPort"] = patch.target_port
 
 
 def pod_reasons(pod: JsonDict) -> set[str]:
-    """Collect waiting/terminated reasons (current and last state) of a pod's containers."""
+    """Waiting/terminated reasons (current and last state) of a pod's containers, plus the
+    reason a pod cannot be scheduled (e.g. ``Unschedulable``)."""
     reasons: set[str] = set()
     status = pod.get("status") or {}
+    for condition in status.get("conditions") or []:
+        if condition.get("type") == "PodScheduled" and condition.get("status") == "False":
+            reasons.add(condition.get("reason") or "Unschedulable")
     for cs in (status.get("containerStatuses") or []) + (status.get("initContainerStatuses") or []):
         for state_key in ("state", "lastState"):
             for phase in ("waiting", "terminated"):
@@ -96,14 +212,70 @@ def is_ready(deployment: JsonDict) -> bool:
     return generation_seen and ready >= desired and updated >= desired
 
 
+def restarts(pod: JsonDict) -> int:
+    """Total restarts of a pod's containers."""
+    statuses = (pod.get("status") or {}).get("containerStatuses") or []
+    return sum(int(cs.get("restartCount") or 0) for cs in statuses)
+
+
+def _pod_ready(pod: JsonDict) -> bool:
+    conditions = (pod.get("status") or {}).get("conditions") or []
+    return any(c.get("type") == "Ready" and c.get("status") == "True" for c in conditions)
+
+
+def _port_names_and_numbers(pod: JsonDict) -> set[int | str]:
+    ports: set[int | str] = set()
+    for container in (pod.get("spec") or {}).get("containers") or []:
+        for port in container.get("ports") or []:
+            ports.add(int(port["containerPort"]))
+            if port.get("name"):
+                ports.add(port["name"])
+    return ports
+
+
+def service_broken(service: JsonDict, pods: Iterable[JsonDict]) -> bool:
+    """True when no ready pod matches the selector, or no matching pod exposes a targetPort."""
+    selector = (service.get("spec") or {}).get("selector") or {}
+    matching = [
+        p
+        for p in pods
+        if selector
+        and all(
+            ((p.get("metadata") or {}).get("labels") or {}).get(k) == v for k, v in selector.items()
+        )
+        and _pod_ready(p)
+    ]
+    if not matching:
+        return True
+    exposed = set().union(*(_port_names_and_numbers(p) for p in matching))
+    for port in (service.get("spec") or {}).get("ports") or []:
+        target = port.get("targetPort", port.get("port"))
+        if target not in exposed:
+            return True
+    return False
+
+
 def symptom_met(
-    symptom: ExpectedSymptom, target_pods: Iterable[JsonDict], deployments: dict[str, JsonDict]
+    symptom: ExpectedSymptom,
+    target_pods: Iterable[JsonDict],
+    deployments: dict[str, JsonDict],
+    services: dict[str, JsonDict] | None = None,
+    namespace_pods: Iterable[JsonDict] = (),
 ) -> bool:
-    """Check every condition of ``symptom`` against observed pods and Deployments."""
+    """Check every condition of ``symptom`` against observed pods, Deployments and Services."""
+    target_pods = list(target_pods)
     if symptom.pod_reason_any_of:
         seen = set().union(*(pod_reasons(p) for p in target_pods))
         if not seen & set(symptom.pod_reason_any_of):
             return False
+    if symptom.min_restarts and not any(restarts(p) >= symptom.min_restarts for p in target_pods):
+        return False
+    if symptom.broken_services:
+        pods = list(namespace_pods)
+        for name in symptom.broken_services:
+            service = (services or {}).get(name)
+            if service is None or not service_broken(service, pods):
+                return False
     for name in symptom.not_ready_deployments:
         deployment = deployments.get(name)
         if deployment is None:
@@ -114,16 +286,16 @@ def symptom_met(
     return True
 
 
-def select_deployments(rendered: str, names: set[str]) -> str:
-    """Pick the named Deployment documents out of rendered kustomize output."""
+def select_docs(rendered: str, kind: str, names: set[str]) -> str:
+    """Pick the named documents of one kind out of rendered kustomize output."""
     docs = [
         doc
         for doc in yaml.safe_load_all(rendered)
-        if doc and doc.get("kind") == "Deployment" and doc["metadata"]["name"] in names
+        if doc and doc.get("kind") == kind and doc["metadata"]["name"] in names
     ]
     missing = names - {doc["metadata"]["name"] for doc in docs}
     if missing:
-        raise KeyError(f"deployments not in base manifests: {sorted(missing)}")
+        raise KeyError(f"{kind} objects not in base manifests: {sorted(missing)}")
     return yaml.safe_dump_all(docs, sort_keys=False)
 
 
@@ -195,19 +367,49 @@ class Injector:
         return result.stdout
 
     def inject(self, scenario: Scenario) -> None:
-        """Apply every injection of ``scenario`` to its target Deployment."""
-        name, namespace = scenario.target.name, scenario.namespace
-        deployment = self._to_dict(self._apps.read_namespaced_deployment(name, namespace))
+        """Apply every injection of ``scenario`` (Deployments, Services and new PVCs)."""
+        namespace = scenario.namespace
         for injection in scenario.inject:
-            apply_injection(deployment, injection, scenario.target.container)
-        deployment.pop("status", None)
-        self._apps.replace_namespaced_deployment(name, namespace, deployment)
-        log.info("fault injected", scenario=scenario.id, target=name)
+            if isinstance(injection, AddPvc):
+                body = pvc_manifest(injection, scenario.id)
+                self._core.create_namespaced_persistent_volume_claim(namespace, body)
+        for name in scenario.deployments:
+            deployment = self._to_dict(self._apps.read_namespaced_deployment(name, namespace))
+            for injection in scenario.inject:
+                if isinstance(injection, PatchService):
+                    continue
+                if (injection.deployment or scenario.target.name) == name:
+                    default = scenario.target.container if name == scenario.target.name else "app"
+                    apply_injection(deployment, injection, injection.container or default)
+            deployment.pop("status", None)
+            self._apps.replace_namespaced_deployment(name, namespace, deployment)
+        for injection in scenario.inject:
+            if isinstance(injection, PatchService):
+                name = injection.service or scenario.target.name
+                service = self._to_dict(self._core.read_namespaced_service(name, namespace))
+                apply_service_patch(service, injection)
+                service.pop("status", None)
+                self._core.replace_namespaced_service(name, namespace, service)
+        log.info("fault injected", scenario=scenario.id, target=scenario.target.name)
 
     def symptom_present(self, scenario: Scenario) -> bool:
         """True when the cluster currently shows the scenario's expected symptom."""
-        pods = self._pods(scenario.namespace, scenario.target.name)
-        return symptom_met(scenario.expected_symptom, pods, self._deployments(scenario.namespace))
+        namespace, symptom = scenario.namespace, scenario.expected_symptom
+        services: dict[str, JsonDict] = {}
+        namespace_pods: list[JsonDict] = []
+        if symptom.broken_services:
+            for name in symptom.broken_services:
+                services[name] = self._to_dict(self._core.read_namespaced_service(name, namespace))
+            namespace_pods = [
+                self._to_dict(p) for p in self._core.list_namespaced_pod(namespace).items
+            ]
+        return symptom_met(
+            symptom,
+            self._pods(namespace, scenario.target.name),
+            self._deployments(namespace),
+            services,
+            namespace_pods,
+        )
 
     def wait_for_symptom(self, scenario: Scenario, interval_s: float = 3.0) -> float:
         """Block until the expected symptom appears; return seconds taken."""
@@ -217,10 +419,22 @@ class Injector:
         return elapsed
 
     def reset(self, scenario: Scenario, timeout_s: float = 180.0) -> float:
-        """Re-apply the base manifests of the affected Deployment and wait until healthy."""
+        """Restore every touched object from the base manifests and wait until healthy."""
         rendered = self._kubectl("kustomize", str(self._base_dir))
-        target_docs = select_deployments(rendered, {scenario.target.name})
-        self._kubectl("replace", "--save-config", "-f", "-", stdin=target_docs)
+        docs = select_docs(rendered, "Deployment", set(scenario.deployments))
+        if scenario.services:
+            docs += "---\n" + select_docs(rendered, "Service", set(scenario.services))
+        self._kubectl("replace", "--save-config", "-f", "-", stdin=docs)
+        if any(isinstance(i, AddPvc) for i in scenario.inject):
+            self._kubectl(
+                "delete",
+                "pvc",
+                "-n",
+                scenario.namespace,
+                "-l",
+                f"{FAULT_LABEL}={scenario.id}",
+                "--wait=false",
+            )
         self._kubectl("apply", "-k", str(self._base_dir))
         elapsed = poll(lambda: self.all_ready(scenario.namespace), timeout_s, 3.0)
         log.info("fault reset", scenario=scenario.id, seconds=round(elapsed, 1))

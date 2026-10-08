@@ -8,11 +8,20 @@ from kubernetes import client
 
 from opspilot.faults import injector as inj
 from opspilot.faults.scenario import (
+    AddEnvFrom,
+    AddInitContainer,
+    AddPvc,
     ExpectedSymptom,
+    PatchService,
     Scale,
+    Scenario,
+    SetAffinity,
+    SetCommand,
     SetEnv,
     SetImage,
     SetProbe,
+    SetResources,
+    SetSecretEnv,
     UnsetEnv,
     load_scenarios,
 )
@@ -47,6 +56,22 @@ def deployment(name: str = "payments-api", ready: int = 1, replicas: int = 1) ->
             "updatedReplicas": ready,
         },
     }
+
+
+SERVICE: dict[str, Any] = {
+    "metadata": {"name": "payments-api"},
+    "spec": {
+        "selector": {"app.kubernetes.io/name": "payments-api"},
+        "ports": [{"name": "http", "port": 8080, "targetPort": "http"}],
+    },
+}
+
+
+KUSTOMIZED = (
+    "kind: Deployment\nmetadata: {name: payments-api}\n---\n"
+    "kind: Deployment\nmetadata: {name: orders-api}\n---\n"
+    "kind: Service\nmetadata: {name: payments-api}\n"
+)
 
 
 def pod(**container_status: Any) -> dict[str, Any]:
@@ -136,17 +161,17 @@ def test_symptom_not_ready_deployments() -> None:
     assert not inj.symptom_met(symptom, [], {})
 
 
-def test_select_deployments() -> None:
+def test_select_docs() -> None:
     rendered = (
         "kind: Namespace\nmetadata: {name: shop}\n---\n"
         "kind: Deployment\nmetadata: {name: redis}\n---\n"
         "kind: Deployment\nmetadata: {name: payments-api}\n"
     )
-    out = inj.select_deployments(rendered, {"redis"})
+    out = inj.select_docs(rendered, "Deployment", {"redis"})
     assert "redis" in out
     assert "payments-api" not in out
     with pytest.raises(KeyError, match="nope"):
-        inj.select_deployments(rendered, {"nope"})
+        inj.select_docs(rendered, "Deployment", {"nope"})
 
 
 def test_poll_returns_and_times_out() -> None:
@@ -183,8 +208,20 @@ class FakeApps:
 class FakeCore:
     def __init__(self, pods: list[dict[str, Any]]) -> None:
         self.pods = pods
+        self.services = {"payments-api": SERVICE}
+        self.replaced: list[tuple[str, dict[str, Any]]] = []
+        self.created: list[dict[str, Any]] = []
 
-    def list_namespaced_pod(self, namespace: str, label_selector: str) -> Any:
+    def read_namespaced_service(self, name: str, namespace: str) -> _Obj:
+        return _Obj(copy.deepcopy(self.services[name]))
+
+    def replace_namespaced_service(self, name: str, namespace: str, body: Any) -> None:
+        self.replaced.append((name, body))
+
+    def create_namespaced_persistent_volume_claim(self, namespace: str, body: Any) -> None:
+        self.created.append(body)
+
+    def list_namespaced_pod(self, namespace: str, label_selector: str = "") -> Any:
         return type(
             "L", (), {"items": [_Obj({"metadata": {"name": "p"}, **p}) for p in self.pods]}
         )()
@@ -205,7 +242,7 @@ def fake_injector(monkeypatch: pytest.MonkeyPatch) -> tuple[inj.Injector, FakeAp
 
     def run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
         commands.append((args, kwargs.get("input")))
-        stdout = "kind: Deployment\nmetadata: {name: payments-api}\n" if "kustomize" in args else ""
+        stdout = KUSTOMIZED if "kustomize" in args else ""
         return subprocess.CompletedProcess(args, 0, stdout, "")
 
     injector = inj.Injector(
@@ -249,3 +286,164 @@ def test_injector_reset_uses_admin_context(
     verbs = [args[3] for args, _ in commands]
     assert verbs == ["kustomize", "replace", "apply"]
     assert "payments-api" in commands[1][1]
+
+
+# ---- Day 5 injection types ------------------------------------------------------------
+
+
+def test_resources_command_and_affinity() -> None:
+    d = deployment()
+    inj.apply_injection(
+        d,
+        SetResources(type="set_resources", requests={"cpu": "50"}, limits={"memory": "48Mi"}),
+        "app",
+    )
+    inj.apply_injection(d, SetCommand(type="set_command", args=["--enable-turbo"]), "app")
+    inj.apply_injection(
+        d,
+        SetAffinity(
+            type="set_affinity",
+            node_selector={"disktype": "ssd"},
+            required_node_labels={"zone": ["z9"]},
+        ),
+        "app",
+    )
+    c = inj.find_container(d, "app")
+    assert c["resources"] == {"requests": {"cpu": "50"}, "limits": {"memory": "48Mi"}}
+    assert c["args"] == ["--enable-turbo"]
+    assert "command" not in c
+    spec = d["spec"]["template"]["spec"]
+    assert spec["nodeSelector"] == {"disktype": "ssd"}
+    terms = spec["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
+    assert terms["nodeSelectorTerms"][0]["matchExpressions"] == [
+        {"key": "zone", "operator": "In", "values": ["z9"]}
+    ]
+
+
+def test_init_container_env_refs_and_pvc() -> None:
+    d = deployment()
+    inj.apply_injection(
+        d,
+        AddInitContainer(type="add_init_container", name="wait-db", args=["wait-for", "db:5432"]),
+        "app",
+    )
+    inj.apply_injection(d, AddEnvFrom(type="add_env_from", configmap="orders-flags"), "app")
+    inj.apply_injection(
+        d,
+        SetSecretEnv(type="set_secret_env", name="API_KEY", secret="pay-keys", key="api-key"),
+        "app",
+    )
+    pvc = AddPvc(type="add_pvc", name="cache", mount_path="/cache", storage_class="fast-ssd")
+    inj.apply_injection(d, pvc, "app")
+    spec = d["spec"]["template"]["spec"]
+    init = spec["initContainers"][0]
+    assert (init["name"], init["image"], init["args"]) == (
+        "wait-db",
+        "opspilot-demo-svc:dev",
+        ["wait-for", "db:5432"],
+    )
+    c = inj.find_container(d, "app")
+    assert c["envFrom"] == [{"configMapRef": {"name": "orders-flags"}}]
+    assert c["env"][-1] == {
+        "name": "API_KEY",
+        "valueFrom": {"secretKeyRef": {"name": "pay-keys", "key": "api-key"}},
+    }
+    assert spec["volumes"] == [{"name": "cache", "persistentVolumeClaim": {"claimName": "cache"}}]
+    assert c["volumeMounts"] == [{"name": "cache", "mountPath": "/cache"}]
+    manifest = inj.pvc_manifest(pvc, "pvc-x")
+    assert manifest["metadata"]["labels"] == {inj.FAULT_LABEL: "pvc-x"}
+    assert manifest["spec"]["storageClassName"] == "fast-ssd"
+    assert manifest["spec"]["accessModes"] == ["ReadWriteOnce"]
+
+
+def test_probe_port_and_timing() -> None:
+    d = deployment()
+    inj.apply_injection(
+        d,
+        SetProbe(
+            type="set_probe", probe="readiness", port=9090, initial_delay_s=0, failure_threshold=1
+        ),
+        "app",
+    )
+    probe = inj.find_container(d, "app")["readinessProbe"]
+    assert probe["httpGet"] == {"path": "/readyz", "port": 9090}
+    assert (probe["initialDelaySeconds"], probe["failureThreshold"]) == (0, 1)
+
+
+def test_service_patch_and_broken_service_detection() -> None:
+    ready_pod = {
+        "metadata": {"labels": {"app.kubernetes.io/name": "payments-api"}},
+        "spec": {"containers": [{"ports": [{"name": "http", "containerPort": 8080}]}]},
+        "status": {"conditions": [{"type": "Ready", "status": "True"}]},
+    }
+    service = copy.deepcopy(SERVICE)
+    assert not inj.service_broken(service, [ready_pod])
+    inj.apply_service_patch(service, PatchService(type="patch_service", target_port=9090))
+    assert inj.service_broken(service, [ready_pod])  # no pod exposes 9090
+    service = copy.deepcopy(SERVICE)
+    inj.apply_service_patch(
+        service,
+        PatchService(type="patch_service", selector={"app.kubernetes.io/name": "payment-api"}),
+    )
+    assert inj.service_broken(service, [ready_pod])  # selector matches nothing
+    symptom = ExpectedSymptom(broken_services=["payments-api"])
+    assert inj.symptom_met(symptom, [], {}, {"payments-api": service}, [ready_pod])
+    assert not inj.symptom_met(symptom, [], {}, {"payments-api": SERVICE}, [ready_pod])
+
+
+def test_symptom_restarts_and_unschedulable() -> None:
+    restarted = pod(restartCount=2)
+    assert inj.symptom_met(ExpectedSymptom(min_restarts=1), [restarted], {})
+    assert not inj.symptom_met(ExpectedSymptom(min_restarts=3), [restarted], {})
+    pending = {
+        "status": {
+            "conditions": [{"type": "PodScheduled", "status": "False", "reason": "Unschedulable"}]
+        }
+    }
+    assert inj.pod_reasons(pending) == {"Unschedulable"}
+
+
+def test_scenario_validation_of_new_types() -> None:
+    with pytest.raises(ValueError, match="at least one change"):
+        SetProbe(type="set_probe", probe="liveness")
+    with pytest.raises(ValueError, match="selector or target_port"):
+        PatchService(type="patch_service")
+    with pytest.raises(ValueError, match="command or args"):
+        SetCommand(type="set_command")
+
+
+def _scenario(**overrides: Any) -> Scenario:
+    data = SCENARIOS["oom-payments"].model_dump(mode="json")
+    return Scenario.model_validate({**data, **overrides})
+
+
+def test_injector_patches_services_and_creates_pvcs(
+    fake_injector: tuple[inj.Injector, FakeApps, list[Any]],
+) -> None:
+    injector, apps, commands = fake_injector
+    core: FakeCore = injector._core  # type: ignore[assignment]
+    scenario = _scenario(
+        id="pvc-x",
+        inject=[
+            {"type": "add_pvc", "name": "cache", "mount_path": "/cache"},
+            {"type": "patch_service", "target_port": 9090},
+            {"type": "set_env", "deployment": "orders-api", "env": {"LOG_INJECTION_TEXT": "hi"}},
+        ],
+    )
+    assert scenario.deployments == ["payments-api", "orders-api"]
+    apps.deployments["orders-api"]["spec"]["template"]["spec"]["containers"][0]["name"] = "app"
+    scenario = scenario.model_copy(
+        update={"target": scenario.target.model_copy(update={"container": "main"})}
+    )
+    apps.deployments["payments-api"]["spec"]["template"]["spec"]["containers"][0]["name"] = "main"
+    assert scenario.services == ["payments-api"]
+    injector.inject(scenario)
+    assert core.created[0]["metadata"]["name"] == "cache"
+    assert [name for name, _ in apps.replaced] == ["payments-api", "orders-api"]
+    assert core.replaced[0][1]["spec"]["ports"][0]["targetPort"] == 9090
+    orders_env = inj.find_container(apps.replaced[1][1], "app")["env"]
+    assert {"name": "LOG_INJECTION_TEXT", "value": "hi"} in orders_env
+    injector.reset(scenario, timeout_s=1)
+    verbs = [args[3] for args, _ in commands]
+    assert verbs == ["kustomize", "replace", "delete", "apply"]
+    assert commands[2][0][-3:] == ["-l", f"{inj.FAULT_LABEL}=pvc-x", "--wait=false"]
