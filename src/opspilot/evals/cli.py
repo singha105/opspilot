@@ -212,3 +212,45 @@ def live(
         )
     recovered = sum(r.recovered for r in rows)
     console.print(f"recovered {recovered}/{len(rows)} -> {out}")
+
+
+REPORT = EVAL_DIR / "REPORT.md"
+README = Path("README.md")
+FAILURE_NOTES = EVAL_DIR / "agent" / "failure_analysis.yaml"
+CHARTS = EVAL_DIR / "charts"
+
+
+@app.command()
+def report(
+    headline_config: Annotated[str, typer.Option(help="Config for the headline.")] = "C3",
+) -> None:
+    """Rewrite the generated blocks of evals/REPORT.md and README.md from the result files."""
+    from opspilot.evals import agent_report as ar
+
+    results = EVAL_DIR / "results"
+    by_config = ar.latest_rows(results)
+    if headline_config not in by_config:
+        raise typer.BadParameter(f"no results for {headline_config} in {results}")
+    main = by_config[headline_config]
+    notes = ar.load_failure_notes(FAILURE_NOTES)
+    headline = ar.headline(main, headline_config)
+    blocks = {
+        "headline": headline,
+        "splits": ar.splits_table(main, headline_config),
+        "ablation": ar.ablation(by_config),
+        "per-category": ar.per_category(main),
+        "safety": ar.safety(by_config),
+        "live": ar.live_table(ar.latest_live(results)),
+        "efficiency": ar.efficiency(by_config),
+        "failures": ar.failures(by_config, notes),
+    }
+    text = REPORT.read_text()
+    for name, body in blocks.items():
+        text = ar.replace_block(text, name, body)
+    REPORT.write_text(text)
+    README.write_text(ar.replace_block(README.read_text(), "results", headline))
+    CHARTS.mkdir(parents=True, exist_ok=True)
+    ar.chart_ablation(by_config, CHARTS / "accuracy-by-config.png")
+    ar.chart_categories(main, CHARTS / "accuracy-by-category.png")
+    unclassified = ar.failures(by_config, notes).count("| unclassified |")
+    console.print(f"updated {REPORT} and {README}; {unclassified} misses still unclassified")

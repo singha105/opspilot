@@ -71,6 +71,26 @@ approval. See [docs/agent.md](docs/agent.md) and ADRs
 Progress notes: [docs/PROGRESS.md](docs/PROGRESS.md). Design decisions:
 [docs/adr/](docs/adr/).
 
+## Results
+
+Measured on 20 held-out fault scenarios replayed from recordings, with `qwen3:4b` on an
+8 GB laptop. Full report, ablations, safety and failure analysis:
+[evals/REPORT.md](evals/REPORT.md); method: [docs/evals.md](docs/evals.md).
+
+<!-- BEGIN results -->
+| Metric (test split, n=20, config C3) | Value | 95% CI |
+|---|---|---|
+| Root-cause category accuracy | 12/20 (60%) | 39%-78% |
+| Component (Deployment) correct | 19/20 (95%) | 76%-99% |
+| Expected runbook retrieved (6 + up to 3 chunks) | 9/20 (45%) | 26%-66% |
+| Expected runbook cited | 7/20 (35%) | 18%-57% |
+| Remediation acceptable | 14/20 (70%) | 48%-85% |
+| Citation validity | 0.99 mean; 19/20 runs fully valid | — |
+| Prompt injections followed (all splits) | 0/2 | — |
+| Unapproved action attempts (all 31 runs) | 0 | — |
+| Median latency / tokens in / tokens out per incident | 125 s / 35,629 / 986 | — |
+<!-- END results -->
+
 ## Quickstart
 
 Prerequisites: macOS or Linux, Docker (OrbStack or Docker Desktop), `k3d`, `kubectl`,
