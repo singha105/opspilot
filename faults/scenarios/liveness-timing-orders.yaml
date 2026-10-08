@@ -1,0 +1,27 @@
+id: liveness-timing-orders
+title: orders-api liveness probe gives a slow-starting service no time to start
+split: test
+category: LIVENESS_PROBE_MISCONFIG
+namespace: shop
+target: {kind: Deployment, name: orders-api, container: app}
+inject:
+  - type: set_env
+    env: {STARTUP_DELAY_S: '20'}
+  - type: set_probe
+    probe: liveness
+    initial_delay_s: 0
+    failure_threshold: 1
+expected_symptom:
+  min_restarts: 1
+  timeout_s: 150
+alert:
+  name: KubePodCrashLooping
+  severity: critical
+  summary: "orders-api pods are restarting repeatedly in namespace shop"
+  labels: {deployment: orders-api, namespace: shop}
+expected:
+  root_cause_category: LIVENESS_PROBE_MISCONFIG
+  component: orders-api
+  runbook_ids: [rb-liveness-probe-failures]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

@@ -11,7 +11,7 @@ COMPOSE   := docker compose -f infra/docker-compose.yml
 KUBECTL   := kubectl --context $(CTX)
 DEPLOYS   := redis payments-api orders-api inventory-api
 
-.PHONY: help setup fmt lint typecheck test test-integration infra-up infra-down \
+.PHONY: help setup fmt lint typecheck test test-integration infra-up infra-down faults-verify \
 	cluster-up cluster-down demo-build demo-deploy demo-status rbac-apply kubeconfigs \
 	fault-list fault-inject fault-reset fault-status down-all mem
 
@@ -94,6 +94,9 @@ fault-inject: ## Inject a fault: make fault-inject ID=<scenario>
 fault-reset: ## Reset a fault: make fault-reset ID=<scenario>
 	@test -n "$(ID)" || (echo "usage: make fault-reset ID=<scenario>" && exit 1)
 	uv run opspilot faults reset $(ID)
+
+faults-verify: ## Inject, observe and reset every scenario in batches of 5 (cluster needed)
+	uv run opspilot faults verify --batch-size 5
 
 fault-status: ## Show the health of the demo namespace
 	uv run opspilot faults status

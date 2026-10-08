@@ -1,0 +1,23 @@
+id: affinity-orders
+title: orders-api requires a node zone label that no node has
+split: test
+category: SCHEDULING_CONSTRAINT
+namespace: shop
+target: {kind: Deployment, name: orders-api, container: app}
+inject:
+  - type: set_affinity
+    required_node_labels: {topology.kubernetes.io/zone: [us-east-1z]}
+expected_symptom:
+  pod_reason_any_of: [Unschedulable]
+  timeout_s: 90
+alert:
+  name: KubePodNotScheduled
+  severity: warning
+  summary: "orders-api pod has been Pending for more than 5 minutes in namespace shop"
+  labels: {deployment: orders-api, namespace: shop}
+expected:
+  root_cause_category: SCHEDULING_CONSTRAINT
+  component: orders-api
+  runbook_ids: [rb-scheduling-constraints]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

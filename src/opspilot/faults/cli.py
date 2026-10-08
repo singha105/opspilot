@@ -79,6 +79,37 @@ def status() -> None:
 
 
 @app.command()
+def verify(
+    ids: Annotated[list[str] | None, typer.Argument(help="Scenario ids (default: all).")] = None,
+    batch_size: Annotated[int, typer.Option(help="Scenarios per batch.")] = 5,
+) -> None:
+    """Inject each scenario, wait for its symptom, reset; exit 1 if any fails."""
+    scenarios = load_scenarios(get_settings().scenarios_dir)
+    chosen = [_scenario(i) for i in ids] if ids else list(scenarios.values())
+    injector = _injector()
+    table = Table("scenario", "category", "symptom", "reset", "result")
+    failures = 0
+    for start in range(0, len(chosen), batch_size):
+        batch = chosen[start : start + batch_size]
+        console.print(f"batch {start // batch_size + 1}: {', '.join(s.id for s in batch)}")
+        for scenario in batch:
+            symptom, result = "-", "[green]ok[/green]"
+            try:
+                injector.inject(scenario)
+                symptom = f"{injector.wait_for_symptom(scenario):.0f}s"
+            except Exception as exc:  # report every failure (timeouts included), keep going
+                failures += 1
+                result = f"[red]{type(exc).__name__}: {str(exc)[:60]}[/red]"
+            finally:
+                reset_s = f"{injector.reset(scenario):.0f}s"
+            table.add_row(scenario.id, scenario.category.value, symptom, reset_s, result)
+    console.print(table)
+    console.print(f"{len(chosen) - failures}/{len(chosen)} scenarios verified")
+    if failures:
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def record(
     scenario_id: Annotated[
         str | None, typer.Argument(help="Scenario id, or 'healthy' for the no-fault baseline.")

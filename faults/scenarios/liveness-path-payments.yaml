@@ -1,0 +1,24 @@
+id: liveness-path-payments
+title: payments-api liveness probe points at a path the service does not serve
+split: dev
+category: LIVENESS_PROBE_MISCONFIG
+namespace: shop
+target: {kind: Deployment, name: payments-api, container: app}
+inject:
+  - type: set_probe
+    probe: liveness
+    path: "/health-wrong"
+expected_symptom:
+  min_restarts: 1
+  timeout_s: 150
+alert:
+  name: KubePodCrashLooping
+  severity: critical
+  summary: "payments-api pods are restarting repeatedly in namespace shop"
+  labels: {deployment: payments-api, namespace: shop}
+expected:
+  root_cause_category: LIVENESS_PROBE_MISCONFIG
+  component: payments-api
+  runbook_ids: [rb-liveness-probe-failures]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

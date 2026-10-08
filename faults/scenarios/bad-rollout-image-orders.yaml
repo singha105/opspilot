@@ -1,0 +1,23 @@
+id: bad-rollout-image-orders
+title: orders-api rolled out a v2 image that crashes at startup
+split: dev
+category: BAD_ROLLOUT
+namespace: shop
+target: {kind: Deployment, name: orders-api, container: app}
+inject:
+  - type: set_image
+    image: "opspilot-demo-svc:v2-broken"
+expected_symptom:
+  pod_reason_any_of: [CrashLoopBackOff, Error]
+  timeout_s: 120
+alert:
+  name: KubePodCrashLooping
+  severity: critical
+  summary: "orders-api pods are restarting repeatedly in namespace shop"
+  labels: {deployment: orders-api, namespace: shop}
+expected:
+  root_cause_category: BAD_ROLLOUT
+  component: orders-api
+  runbook_ids: [rb-bad-rollout]
+  acceptable_actions: [rollback_deployment, set_container_image]
+reset: {type: reapply_base}

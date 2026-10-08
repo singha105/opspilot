@@ -24,11 +24,28 @@ def _raw(**overrides: Any) -> dict[str, Any]:
     return raw
 
 
+ACTIONS = {
+    "restart_deployment",
+    "rollback_deployment",
+    "scale_deployment",
+    "patch_container_resources",
+    "set_container_image",
+    "manual_change",
+}
+
+
 def test_all_repo_scenarios_load() -> None:
     scenarios = load_scenarios(SCENARIOS_DIR)
     assert set(scenarios) >= DAY1_IDS
+    assert len(scenarios) == 30
+    assert {s.category for s in scenarios.values()} == set(RootCauseCategory) - {
+        RootCauseCategory.UNKNOWN
+    }
     for scenario in scenarios.values():
         assert scenario.category == scenario.expected.root_cause_category
+        assert set(scenario.expected.acceptable_actions) <= ACTIONS, scenario.id
+        for runbook in scenario.expected.runbook_ids:
+            assert (SCENARIOS_DIR.parents[1] / "knowledge" / "runbooks" / f"{runbook}.md").exists()
 
 
 def test_example_scenario_fields() -> None:

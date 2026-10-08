@@ -1,0 +1,24 @@
+id: pending-cpu-orders
+title: orders-api requests 50 CPUs and cannot be scheduled
+split: dev
+category: INSUFFICIENT_RESOURCES
+namespace: shop
+target: {kind: Deployment, name: orders-api, container: app}
+inject:
+  - type: set_resources
+    requests: {cpu: '50'}
+    limits: {cpu: '50'}
+expected_symptom:
+  pod_reason_any_of: [Unschedulable]
+  timeout_s: 90
+alert:
+  name: KubePodNotScheduled
+  severity: warning
+  summary: "orders-api pod has been Pending for more than 5 minutes in namespace shop"
+  labels: {deployment: orders-api, namespace: shop}
+expected:
+  root_cause_category: INSUFFICIENT_RESOURCES
+  component: orders-api
+  runbook_ids: [rb-insufficient-resources]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

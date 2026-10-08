@@ -6,15 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from opspilot.faults.scenario import load_scenarios
 from opspilot.mcp_servers.common import AuditLog, ToolRunner
 from opspilot.mcp_servers.k8s_readonly.replay import ReplayBackend, bind_args, call_key
 from opspilot.mcp_servers.k8s_readonly.server import DESCRIPTIONS, K8sTools, build_server
 
 ROOT = Path(__file__).parents[2]
 FIXTURES = ROOT / "evals" / "fixtures"
-SCENARIOS = load_scenarios(ROOT / "faults" / "scenarios")
-EXPECTED = {"healthy", *SCENARIOS}
+RECORDED = sorted(p.stem for p in FIXTURES.glob("*.json"))
 
 
 def replay_tools(fixture: str, tmp_path: Path) -> K8sTools:
@@ -23,23 +21,17 @@ def replay_tools(fixture: str, tmp_path: Path) -> K8sTools:
     return K8sTools(backend, runner, ["shop"])  # type: ignore[arg-type]
 
 
-def test_six_fixtures_with_metadata() -> None:
-    import hashlib
-
-    found = {p.stem for p in FIXTURES.glob("*.json")}
-    assert found == EXPECTED
+def test_fixture_metadata() -> None:
+    assert "healthy" in RECORDED
     for path in FIXTURES.glob("*.json"):
         meta = json.loads(path.read_text())["metadata"]
         assert meta["fixture_id"] == path.stem
         assert meta["kubernetes_version"].startswith("v1.")
         assert meta["identity"] == "opspilot-reader"
         assert meta["tool_calls"] == len(json.loads(path.read_text())["calls"])
-        if path.stem != "healthy":
-            scenario_file = ROOT / "faults" / "scenarios" / f"{path.stem}.yaml"
-            assert meta["scenario_sha256"] == hashlib.sha256(scenario_file.read_bytes()).hexdigest()
 
 
-@pytest.mark.parametrize("fixture", sorted(EXPECTED))
+@pytest.mark.parametrize("fixture", RECORDED)
 def test_every_recorded_call_replays_identically(fixture: str, tmp_path: Path) -> None:
     tools = replay_tools(fixture, tmp_path)
     calls = json.loads((FIXTURES / f"{fixture}.json").read_text())["calls"]

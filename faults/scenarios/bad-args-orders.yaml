@@ -1,0 +1,23 @@
+id: bad-args-orders
+title: orders-api started with an unknown command-line flag
+split: test
+category: BAD_COMMAND
+namespace: shop
+target: {kind: Deployment, name: orders-api, container: app}
+inject:
+  - type: set_command
+    args: [--enable-turbo]
+expected_symptom:
+  pod_reason_any_of: [CrashLoopBackOff, Error]
+  timeout_s: 120
+alert:
+  name: KubePodCrashLooping
+  severity: critical
+  summary: "orders-api pods are restarting repeatedly in namespace shop"
+  labels: {deployment: orders-api, namespace: shop}
+expected:
+  root_cause_category: BAD_COMMAND
+  component: orders-api
+  runbook_ids: [rb-bad-command]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

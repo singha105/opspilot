@@ -76,3 +76,29 @@ def test_status(fake: FakeInjector) -> None:
     assert result.exit_code == 0
     assert "OOMKilled" in result.output
     assert "0/1" in result.output
+
+
+def test_verify_runs_each_scenario_and_reports_failures(
+    fake: FakeInjector, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def flaky_wait(scenario: Any) -> float:
+        fake.calls.append(("wait", scenario.id))
+        if scenario.id == "redis-down":
+            raise TimeoutError("condition not met within 120s")
+        return 4.0
+
+    monkeypatch.setattr(fake, "wait_for_symptom", flaky_wait)
+    result = runner.invoke(
+        app, ["faults", "verify", "oom-payments", "redis-down", "--batch-size", "1"]
+    )
+    assert result.exit_code == 1
+    assert fake.calls == [
+        ("inject", "oom-payments"),
+        ("wait", "oom-payments"),
+        ("reset", "oom-payments"),
+        ("inject", "redis-down"),
+        ("wait", "redis-down"),
+        ("reset", "redis-down"),  # reset even after a failure
+    ]
+    assert "batch 2: redis-down" in result.output
+    assert "1/2 scenarios verified" in result.output

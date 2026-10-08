@@ -1,0 +1,25 @@
+id: pvc-storageclass-inventory
+title: inventory-api mounts a PVC whose StorageClass does not exist
+split: test
+category: PVC_PENDING
+namespace: shop
+target: {kind: Deployment, name: inventory-api, container: app}
+inject:
+  - type: add_pvc
+    name: inventory-cache
+    mount_path: "/var/cache/inventory"
+    storage_class: fast-ssd
+expected_symptom:
+  pod_reason_any_of: [Unschedulable]
+  timeout_s: 90
+alert:
+  name: KubePodNotScheduled
+  severity: warning
+  summary: "inventory-api pod has been Pending for more than 5 minutes in namespace shop"
+  labels: {deployment: inventory-api, namespace: shop}
+expected:
+  root_cause_category: PVC_PENDING
+  component: inventory-api
+  runbook_ids: [rb-pvc-pending]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

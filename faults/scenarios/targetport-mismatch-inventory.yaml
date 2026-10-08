@@ -1,0 +1,23 @@
+id: targetport-mismatch-inventory
+title: inventory-api Service targets a port the pods do not expose
+split: test
+category: SERVICE_MISCONFIG
+namespace: shop
+target: {kind: Deployment, name: inventory-api, container: app}
+inject:
+  - type: patch_service
+    target_port: 9090
+expected_symptom:
+  broken_services: [inventory-api]
+  timeout_s: 60
+alert:
+  name: ProbeFailure
+  severity: critical
+  summary: "Synthetic HTTP check of the inventory-api Service in namespace shop is failing with connection refused"
+  labels: {namespace: shop, service: inventory-api}
+expected:
+  root_cause_category: SERVICE_MISCONFIG
+  component: inventory-api
+  runbook_ids: [rb-service-misconfig]
+  acceptable_actions: [manual_change]
+reset: {type: reapply_base}

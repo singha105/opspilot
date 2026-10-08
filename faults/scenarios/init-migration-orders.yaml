@@ -1,0 +1,24 @@
+id: init-migration-orders
+title: orders-api init container runs a schema migration that fails
+split: test
+category: INIT_CONTAINER_FAILURE
+namespace: shop
+target: {kind: Deployment, name: orders-api, container: app}
+inject:
+  - type: add_init_container
+    name: db-migrate
+    args: [migrate, --target, 0042_backfill_order_totals]
+expected_symptom:
+  pod_reason_any_of: [Error, CrashLoopBackOff]
+  timeout_s: 150
+alert:
+  name: KubePodNotReady
+  severity: warning
+  summary: "orders-api pod has been in a non-ready state for more than 5 minutes in namespace shop"
+  labels: {deployment: orders-api, namespace: shop}
+expected:
+  root_cause_category: INIT_CONTAINER_FAILURE
+  component: orders-api
+  runbook_ids: [rb-init-container-failure]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

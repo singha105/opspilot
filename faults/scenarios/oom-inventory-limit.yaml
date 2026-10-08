@@ -1,0 +1,24 @@
+id: oom-inventory-limit
+title: inventory-api memory limit lowered below what the service needs
+split: test
+category: OOM_KILLED
+namespace: shop
+target: {kind: Deployment, name: inventory-api, container: app}
+inject:
+  - type: set_resources
+    requests: {memory: 8Mi}
+    limits: {memory: 12Mi}
+expected_symptom:
+  pod_reason_any_of: [OOMKilled]
+  timeout_s: 150
+alert:
+  name: KubePodCrashLooping
+  severity: critical
+  summary: "inventory-api pods are restarting repeatedly in namespace shop"
+  labels: {deployment: inventory-api, namespace: shop}
+expected:
+  root_cause_category: OOM_KILLED
+  component: inventory-api
+  runbook_ids: [rb-oom-killed]
+  acceptable_actions: [patch_container_resources, rollback_deployment]
+reset: {type: reapply_base}

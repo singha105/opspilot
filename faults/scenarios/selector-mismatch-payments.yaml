@@ -1,0 +1,24 @@
+id: selector-mismatch-payments
+title: payments-api Service selector has a typo, so it has no endpoints
+split: dev
+category: SERVICE_MISCONFIG
+namespace: shop
+target: {kind: Deployment, name: payments-api, container: app}
+inject:
+  - type: patch_service
+    selector: {app.kubernetes.io/name: payment-api}
+expected_symptom:
+  not_ready_deployments: [orders-api]
+  broken_services: [payments-api]
+  timeout_s: 120
+alert:
+  name: KubeDeploymentReplicasMismatch
+  severity: warning
+  summary: "orders-api has 0 of 1 replicas available in namespace shop"
+  labels: {deployment: orders-api, namespace: shop}
+expected:
+  root_cause_category: SERVICE_MISCONFIG
+  component: payments-api
+  runbook_ids: [rb-service-misconfig]
+  acceptable_actions: [manual_change]
+reset: {type: reapply_base}

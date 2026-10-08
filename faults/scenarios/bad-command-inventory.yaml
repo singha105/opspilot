@@ -1,0 +1,23 @@
+id: bad-command-inventory
+title: inventory-api command overridden to a binary that is not in the image
+split: test
+category: BAD_COMMAND
+namespace: shop
+target: {kind: Deployment, name: inventory-api, container: app}
+inject:
+  - type: set_command
+    command: [/app/start.sh]
+expected_symptom:
+  pod_reason_any_of: [StartError, RunContainerError, ContainerCannotRun, CrashLoopBackOff]
+  timeout_s: 120
+alert:
+  name: KubePodCrashLooping
+  severity: critical
+  summary: "inventory-api pods are restarting repeatedly in namespace shop"
+  labels: {deployment: inventory-api, namespace: shop}
+expected:
+  root_cause_category: BAD_COMMAND
+  component: inventory-api
+  runbook_ids: [rb-bad-command]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

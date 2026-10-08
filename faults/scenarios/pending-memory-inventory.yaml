@@ -1,0 +1,24 @@
+id: pending-memory-inventory
+title: inventory-api requests 64Gi of memory and cannot be scheduled
+split: test
+category: INSUFFICIENT_RESOURCES
+namespace: shop
+target: {kind: Deployment, name: inventory-api, container: app}
+inject:
+  - type: set_resources
+    requests: {memory: 64Gi}
+    limits: {memory: 64Gi}
+expected_symptom:
+  pod_reason_any_of: [Unschedulable]
+  timeout_s: 90
+alert:
+  name: KubePodNotScheduled
+  severity: warning
+  summary: "inventory-api pod has been Pending for more than 5 minutes in namespace shop"
+  labels: {deployment: inventory-api, namespace: shop}
+expected:
+  root_cause_category: INSUFFICIENT_RESOURCES
+  component: inventory-api
+  runbook_ids: [rb-insufficient-resources]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

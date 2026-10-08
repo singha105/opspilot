@@ -1,0 +1,23 @@
+id: missing-configmap-orders
+title: "orders-api cannot start: envFrom references a ConfigMap that does not exist"
+split: dev
+category: MISSING_CONFIGMAP_OR_SECRET
+namespace: shop
+target: {kind: Deployment, name: orders-api, container: app}
+inject:
+  - type: add_env_from
+    configmap: orders-feature-flags
+expected_symptom:
+  pod_reason_any_of: [CreateContainerConfigError]
+  timeout_s: 120
+alert:
+  name: KubeDeploymentReplicasMismatch
+  severity: warning
+  summary: "orders-api has 0 of 1 replicas available in namespace shop"
+  labels: {deployment: orders-api, namespace: shop}
+expected:
+  root_cause_category: MISSING_CONFIGMAP_OR_SECRET
+  component: orders-api
+  runbook_ids: [rb-missing-configmap-or-secret]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

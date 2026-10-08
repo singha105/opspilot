@@ -1,0 +1,24 @@
+id: readiness-port-inventory
+title: inventory-api readiness probe checks a port the container does not listen on
+split: test
+category: READINESS_PROBE_MISCONFIG
+namespace: shop
+target: {kind: Deployment, name: inventory-api, container: app}
+inject:
+  - type: set_probe
+    probe: readiness
+    port: 9090
+expected_symptom:
+  not_ready_deployments: [inventory-api]
+  timeout_s: 120
+alert:
+  name: KubePodNotReady
+  severity: warning
+  summary: "inventory-api pod has been in a non-ready state for more than 5 minutes in namespace shop"
+  labels: {deployment: inventory-api, namespace: shop}
+expected:
+  root_cause_category: READINESS_PROBE_MISCONFIG
+  component: inventory-api
+  runbook_ids: [rb-readiness-probe-failures]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}

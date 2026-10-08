@@ -1,0 +1,25 @@
+id: pvc-accessmode-orders
+title: orders-api mounts a ReadWriteMany PVC the local-path provisioner cannot create
+split: test
+category: PVC_PENDING
+namespace: shop
+target: {kind: Deployment, name: orders-api, container: app}
+inject:
+  - type: add_pvc
+    name: orders-shared
+    mount_path: "/shared"
+    access_modes: [ReadWriteMany]
+expected_symptom:
+  not_ready_deployments: [orders-api]
+  timeout_s: 90
+alert:
+  name: KubePodNotScheduled
+  severity: warning
+  summary: "orders-api pod has been Pending for more than 5 minutes in namespace shop"
+  labels: {deployment: orders-api, namespace: shop}
+expected:
+  root_cause_category: PVC_PENDING
+  component: orders-api
+  runbook_ids: [rb-pvc-pending]
+  acceptable_actions: [rollback_deployment, manual_change]
+reset: {type: reapply_base}
