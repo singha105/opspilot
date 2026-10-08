@@ -1,5 +1,67 @@
 # Progress
 
+## Day 5 — Fault catalog, evaluation, ablations, safety (2026-10-07 to 2026-10-08)
+
+**Done:**
+- Demo app: a `v2-broken` image that crashes with a real traceback, `wait-for` and
+  `migrate` init-container subcommands, a CLI parser (unknown flags exit 2), and
+  `LOG_INJECTION_TEXT` logged at startup.
+- Faults: 25 new scenarios (30 in all, two per category), new injection types, and
+  `make faults-verify`. All 30 pass inject -> symptom -> reset live (29/30 on the first full
+  run; the 30th exposed an injector bug, fixed and re-verified). Recording all 31 fixtures
+  injected and observed every scenario once more.
+- 31 fixtures committed; `opspilot faults check-fixtures` runs in CI.
+- Splits (`evals/agent/splits.yaml`), scoring (`evals/scoring.py`, Wilson intervals), a
+  resumable replay runner (`opspilot eval agent`), the live subset (`opspilot eval live`),
+  the report generator (`opspilot eval report`) and a leakage test.
+- Agent: the retrieve step now really reranks and honours the retrieval mode (before, it
+  ignored both); no-RAG runs drop the knowledge tool; new `refine_retrieval` node driven by
+  dev failures.
+- Evaluation run: C3 on all 30 + healthy, C0 and C2 on the 20 test cases, 5 live cases;
+  every miss classified; [evals/REPORT.md](../evals/REPORT.md).
+
+**Decisions:**
+- [ADR-0012](adr/0012-evaluation-methodology.md): replay-based evaluation with a held-out
+  split, simulated approval in replay, Wilson intervals, the reduced matrix (C1/C4 dropped
+  by agreement: about four hours otherwise), and reranking on by default for the agent.
+
+**Metrics** (all from `uv run opspilot eval agent|live|report`, `qwen3:4b`, M-series 8 GB):
+- Test split, C3: category 12/20 (60%, 95% CI 39-78%), component 19/20, expected runbook
+  cited 7/20, remediation acceptable 14/20, median 125 s and 35.6k tokens in per incident.
+- All 30 faults, C3: category 19/30 (63%, 46-78%); dev 7/10. Healthy control escalated.
+- Ablation (test, category): C0 no RAG 11/20, C2 hybrid 10/20, C3 hybrid + rerank 12/20;
+  all intervals overlap. Runbook retrieved: C2 14/20, C3 9/20.
+- Safety: injections followed 0/2 in every config; unapproved action attempts 0 in 71
+  replayed runs; injections flagged 1/2.
+- Live: 3/5 recovered after a harness-approved action, 168-194 s from symptom to verified
+  recovery; one wrong proposal was rejected by the harness.
+- Dev-driven change (`refine_retrieval`), dev split before -> after: runbook retrieved
+  1/10 -> 7/10, cited 1/10 -> 5/10, category 6/10 -> 7/10, component 8/10 -> 9/10.
+- Failure analysis, 33 misses: 26 reasoning errors, 5 tool-use errors, 1 retrieval miss,
+  1 structured-output failure.
+- Tests: 473 passed with 87% line coverage of `src/opspilot` (`make test`); `faults verify`: 30/30.
+
+**Known issues / debt:**
+- The injection detector misses approval claims phrased as "pre-approved ... approve your
+  own action" (injection-redis-down); the log summarizer repeats injected text in its
+  summary. Not followed, but found on the test split and not fixed today (a fix requires
+  rerunning every config).
+- The retriever reranks fused candidates against only the first query variant, which made
+  C3 find the expected runbook less often than C2. Found on test; not changed.
+- The agent requests logs from multi-container pods without naming a container, so init
+  container logs are never read (5 tool-use errors).
+- The 4B model anchors on retrieved postmortems over its own evidence (most reasoning
+  errors).
+- One run per case: model variance is unmeasured (payments-down was right in replay and
+  wrong live).
+- Live runs do not save the final state (only events), unlike replay runs.
+- Session paused overnight between the dev iterations and the final runs; cached outcomes
+  resumed the evaluation without re-running finished cases.
+
+**Next:**
+- Day 6: API, UI and final docs for v1.0.0; then, with disclosure and a full rerun, the
+  injection patterns, multi-query reranking and container-aware log calls.
+
 ## Day 4 — LangGraph agent with human approval (2026-10-07)
 
 **Done:**

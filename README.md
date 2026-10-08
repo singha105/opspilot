@@ -29,7 +29,7 @@ $0 on an 8 GB laptop.
 - **Evals:** 30 fault scenarios injected into a demo app, scored on root-cause
   accuracy, evidence quality and remediation choice.
 
-## Status: Day 4 of 6
+## Status: Day 5 of 6
 
 | Area | State |
 |---|---|
@@ -37,12 +37,12 @@ $0 on an 8 GB laptop.
 | Local k3d cluster + Weaviate | done |
 | Shopfront demo app (4 services) | done |
 | Read-only reader / narrow operator RBAC | done, proven by tests |
-| Fault injection framework | done, 5 of 30 scenarios |
+| Fault injection framework | done, 30 scenarios verified live |
 | Knowledge base (52 docs) + hybrid RAG | done, measured on 60 queries |
 | MCP servers (k8s read-only, kb, gated actions) | done, with approval tokens |
-| Record/replay fixtures | done, 6 fixtures |
+| Record/replay fixtures | done, 31 fixtures, integrity checked in CI |
 | LangGraph agent + human approval | done, one live fix approved end to end |
-| Full eval suite + safety tests | Day 5 |
+| Full eval suite + safety tests | done, see Results |
 | API, UI, docs, v1.0.0 | Day 6 |
 
 **Retrieval, measured.** On 60 graded queries, the default (Weaviate hybrid search over

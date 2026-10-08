@@ -6,6 +6,28 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-08
+
+### Added
+- Fault catalog of 30 scenarios (10 dev, 20 held-out test) covering all 14 root-cause
+  categories, including two prompt-injection scenarios; new injection types (resources,
+  command/args, init containers, envFrom, secretKeyRef, affinity, PVCs, Service patches).
+- Demo image `opspilot-demo-svc:v2-broken`, init-container subcommands (`wait-for`,
+  `migrate`) and a CLI argument parser.
+- `make faults-verify` and `opspilot faults verify`; 31 recorded fixtures and
+  `opspilot faults check-fixtures`, run in CI.
+- Agent evaluation: splits, a pure scoring module with Wilson intervals, a resumable
+  replay runner (`opspilot eval agent`), a live subset (`opspilot eval live`) and a report
+  generator (`opspilot eval report`) for `evals/REPORT.md` and the README results.
+- A `refine_retrieval` node that searches the knowledge base again with the failure
+  signals the investigation found.
+- A test that fails if scenario ids or injected values appear in agent code or prompts.
+- `docs/evals.md` and ADR-0012.
+
+### Changed
+- The agent's retrieval step reranks by default and honours the retrieval mode setting;
+  runs without RAG no longer offer the knowledge-base tool.
+
 ## [0.4.0] - 2026-10-07
 
 ### Added
