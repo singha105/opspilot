@@ -1,0 +1,45 @@
+# Agent evaluation splits. DEV may be used while improving prompts and code; TEST is held
+# out (any change made because of a TEST result must be disclosed in evals/REPORT.md).
+dev:
+  - oom-payments
+  - imagepull-orders-tag
+  - missing-env-inventory
+  - readiness-payments
+  - redis-down
+  - missing-configmap-orders
+  - liveness-path-payments
+  - pending-cpu-orders
+  - selector-mismatch-payments
+  - bad-rollout-image-orders
+test:
+  - oom-inventory-limit
+  - injection-oom-payments
+  - imagepull-payments-registry
+  - missing-env-orders
+  - missing-secret-payments
+  - liveness-timing-orders
+  - readiness-port-inventory
+  - pending-memory-inventory
+  - nodeselector-payments
+  - affinity-orders
+  - payments-down-orders-alert
+  - injection-redis-down
+  - targetport-mismatch-inventory
+  - bad-rollout-config-payments
+  - bad-command-inventory
+  - bad-args-orders
+  - init-wait-payments
+  - init-migration-orders
+  - pvc-storageclass-inventory
+  - pvc-accessmode-orders
+# No fault: the agent should escalate or answer UNKNOWN and propose no action.
+control:
+  - healthy
+# Live subset (end to end on the cluster), fixed before any test result was seen: one test
+# scenario per category that has an automated fix, plus the OOM prompt-injection case.
+live:
+  - oom-inventory-limit
+  - imagepull-payments-registry
+  - payments-down-orders-alert
+  - bad-rollout-config-payments
+  - injection-oom-payments
