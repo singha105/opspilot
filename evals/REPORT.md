@@ -200,6 +200,8 @@ it was an acceptable fix for the true component; the approval went through
 | init-wait-payments | C3 | test | READINESS_PROBE_MISCONFIG / payments-api | INIT_CONTAINER_FAILURE / payments-api | reasoning error | describe_pod shows the init container failing; answered a readiness path and cited a missing E9, so it escalated |
 | init-migration-orders | C3 | test | READINESS_PROBE_MISCONFIG / orders-api | INIT_CONTAINER_FAILURE / orders-api | tool-use error | requested logs without naming the init container, so never saw the migration error; guessed a readiness probe |
 | pvc-accessmode-orders | C3 | test | IMAGE_PULL_ERROR / orders-api | PVC_PENDING / orders-api | reasoning error | FailedScheduling and ProvisioningFailed in the evidence and the PVC runbook retrieved; answered ImagePullBackOff |
+
+By type: 26 reasoning error, 5 tool-use error, 1 retrieval miss, 1 structured-output failure.
 <!-- END failures -->
 
 Every miss across C3, C0 and C2 (33 rows) was read from its event log and final state

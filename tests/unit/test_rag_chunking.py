@@ -93,11 +93,6 @@ def test_split_text_falls_back_to_hard_splits() -> None:
     assert pieces == ["x" * 20, "x" * 20, "x" * 10]
 
 
-def test_estimate_tokens() -> None:
-    assert chunking.estimate_tokens("abcd" * 10) == 10
-    assert chunking.estimate_tokens("abcde") == 2
-
-
 def test_loader_reads_repository_corpus() -> None:
     docs = load_documents(KNOWLEDGE)
     types = {d.doc_type for d in docs}

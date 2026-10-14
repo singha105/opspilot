@@ -7,7 +7,6 @@ input limit even with the contextual header.
 """
 
 import hashlib
-import math
 import re
 from collections.abc import Callable, Sequence
 
@@ -24,11 +23,6 @@ _HEADING = re.compile(r"^(#{1,3})\s+(.+?)\s*#*\s*$")
 _FENCE = re.compile(r"^\s*(```|~~~)")
 
 Chunker = Callable[[Document], list[Chunk]]
-
-
-def estimate_tokens(text: str) -> int:
-    """Approximate token count (``ceil(chars / 4)``)."""
-    return math.ceil(len(text) / CHARS_PER_TOKEN)
 
 
 def chunk_id(doc_id: str, section: str, index: int) -> str:

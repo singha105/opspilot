@@ -13,7 +13,7 @@ DEPLOYS   := redis payments-api orders-api inventory-api
 # make's own variables would reach the MCP server subprocesses, which warn about them.
 DEMO_ENV  := env -u MAKEFLAGS -u MAKEOVERRIDES -u MFLAGS -u MAKELEVEL
 
-.PHONY: help setup fmt lint typecheck test test-integration infra-up infra-down faults-verify \
+.PHONY: help setup fmt lint typecheck test test-integration test-e2e check infra-up infra-down faults-verify \
 	cluster-up cluster-down demo-build demo-deploy demo-status rbac-apply kubeconfigs \
 	fault-list fault-inject fault-reset fault-status down-all mem demo demo-live secrets \
 	app-up app-down
@@ -43,6 +43,18 @@ test: ## Unit tests with coverage (no cluster, Ollama or network)
 
 test-integration: ## Integration tests (needs cluster-up, demo-deploy, rbac-apply)
 	uv run pytest -m integration -v
+
+test-e2e: ## End-to-end live incident (cluster, Weaviate with the KB, Ollama; about 3 min)
+	uv run pytest -m e2e -v
+
+check: ## Everything that needs no cluster: lint, format, types, tests, KB, fixtures, hooks
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run mypy
+	uv run python scripts/validate_kb.py
+	uv run opspilot faults check-fixtures
+	uv run pytest -m "not integration and not e2e" --cov --cov-report=term --cov-fail-under=80
+	uv run pre-commit run --all-files
 
 ## ---- Local infrastructure ----------------------------------------------
 

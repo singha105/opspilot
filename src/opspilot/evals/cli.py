@@ -242,7 +242,10 @@ def report(
         "safety": ar.safety(by_config),
         "live": ar.live_table(ar.latest_live(results)),
         "efficiency": ar.efficiency(by_config),
-        "failures": ar.failures(by_config, notes),
+        "failures": ar.failures(by_config, notes)
+        + "\n\nBy type: "
+        + ", ".join(f"{n} {t}" for t, n in ar.failure_type_counts(by_config, notes).most_common())
+        + ".",
     }
     text = REPORT.read_text()
     for name, body in blocks.items():
