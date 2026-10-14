@@ -1,81 +1,28 @@
 # OpsPilot
 
+AI incident-response agent for Kubernetes: it diagnoses failures with hybrid RAG and
+read-only MCP tools, proposes a fix, and changes nothing until a person approves it.
+
 [![CI](https://github.com/singha105/opspilot/actions/workflows/ci.yml/badge.svg)](https://github.com/singha105/opspilot/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/singha105/opspilot)](https://github.com/singha105/opspilot/releases)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-OpsPilot is an incident-response agent for Kubernetes. Given an alert such as
-"payments-api pods crashlooping in namespace shop", it triages the alert, retrieves
-the relevant runbooks and postmortems with hybrid RAG, investigates the cluster
-through a read-only MCP server, and produces a root-cause diagnosis that cites its
-evidence. It then proposes a fix from a fixed allowlist, waits for a human to
-approve it, applies only that action through a separate gated server, and checks
-that the service recovered. A suite of fault-injection scenarios with known root
-causes measures how often it gets the diagnosis right. Everything runs locally for
-$0 on an 8 GB laptop.
+![The OpsPilot console: a diagnosis with cited evidence and a proposed fix waiting for approval](docs/assets/console.png)
+<!-- Replace with docs/assets/demo.gif once recorded (script in docs/demo.md). -->
 
-## Planned architecture
+An alert comes in ("payments-api pods are restarting repeatedly"). OpsPilot triages it,
+pulls the relevant runbooks and postmortems, investigates the cluster through 11 read-only
+tools, and writes a root-cause diagnosis in which every claim cites a piece of evidence. It
+then proposes a fix from a short allowlist, shows the server-side dry run, and waits. Only
+after a human approves does a separate, gated server apply that one change; the agent then
+checks that the service recovered and writes the incident report. Everything runs locally,
+for $0, on an 8 GB laptop with a 4B-parameter model.
 
-- **Agent:** a LangGraph state machine (triage → retrieve → investigate → diagnose →
-  propose → human approval → act → verify → report) with a SQLite checkpointer.
-- **LLM:** `qwen3:4b` served locally by Ollama, temperature 0, behind a
-  provider-agnostic factory.
-- **Tools:** three MCP servers. `k8s` is read-only, `kb` serves the knowledge base,
-  and `actions` executes approved remediations with single-use approval tokens.
-- **Retrieval:** hybrid search (BM25 + `bge-small-en-v1.5` vectors, fused with
-  Reciprocal Rank Fusion, FlashRank reranking) over Weaviate, with Chroma and
-  Pinecone behind the same interface for comparison.
-- **Safety:** the agent's ServiceAccount cannot read Secrets, exec into pods or
-  write anything. Logs, events and documents are treated as untrusted data.
-- **Evals:** 30 fault scenarios injected into a demo app, scored on root-cause
-  accuracy, evidence quality and remediation choice.
+## Results (held-out test set, 20 fault scenarios)
 
-## Status: Day 5 of 6
-
-| Area | State |
-|---|---|
-| Tooling, Makefile, CI | done |
-| Local k3d cluster + Weaviate | done |
-| Shopfront demo app (4 services) | done |
-| Read-only reader / narrow operator RBAC | done, proven by tests |
-| Fault injection framework | done, 30 scenarios verified live |
-| Knowledge base (52 docs) + hybrid RAG | done, measured on 60 queries |
-| MCP servers (k8s read-only, kb, gated actions) | done, with approval tokens |
-| Record/replay fixtures | done, 31 fixtures, integrity checked in CI |
-| LangGraph agent + human approval | done, one live fix approved end to end |
-| Full eval suite + safety tests | done, see Results |
-| API, UI, docs, v1.0.0 | Day 6 |
-
-**Retrieval, measured.** On 60 graded queries, the default (Weaviate hybrid search over
-section-aware chunks) reaches nDCG@5 0.817 and Recall@5 0.933 at 42 ms p95. Adding
-FlashRank reranking raises nDCG@5 to 0.852, but costs over a second per query on this
-laptop, so it is opt-in. Dense-only search scores 0.672. Details in
-[docs/rag.md](docs/rag.md) and [ADR-0004](docs/adr/0004-retrieval-defaults.md).
-
-**Tools, gated.** The agent sees the cluster through 11 read-only MCP tools and the
-knowledge base through 2 more. Changing anything means calling a separate actions server
-that dry-runs the change and executes it only with a human-approved, single-use token
-bound to that exact action. Every call is redacted, size-capped and audited. Six recorded
-fixtures let agent evals replay real incidents without a cluster. See
-[docs/mcp.md](docs/mcp.md) and [docs/security.md](docs/security.md).
-
-**Agent, approved by a human.** A LangGraph state machine triages the alert, retrieves
-runbooks, investigates with up to 8 read-only tool calls, and writes a diagnosis that
-must cite its evidence. Any change pauses the run until a person approves, rejects or
-edits it, possibly from another terminal; only then is a single-use token minted. On the
-six recorded fixtures it named the right category for all five faults (component right
-in four), escalated the healthy false alarm, and never sent a wrong action to approval,
-in 102-152 s per run on `qwen3:4b`. One live run fixed an OOM-killed service after
-approval. See [docs/agent.md](docs/agent.md) and ADRs
-[0009](docs/adr/0009-state-machine-over-free-form-react.md)-[0011](docs/adr/0011-small-model-strategies.md).
-
-Progress notes: [docs/PROGRESS.md](docs/PROGRESS.md). Design decisions:
-[docs/adr/](docs/adr/).
-
-## Results
-
-Measured on 20 held-out fault scenarios replayed from recordings, with `qwen3:4b` on an
-8 GB laptop. Full report, ablations, safety and failure analysis:
-[evals/REPORT.md](evals/REPORT.md); method: [docs/evals.md](docs/evals.md).
+Faults were injected into a four-service demo app on a local k3d cluster, recorded, and
+replayed to the agent; the 20 test scenarios were never used to tune it.
 
 <!-- BEGIN results -->
 | Metric (test split, n=20, config C3) | Value | 95% CI |
@@ -90,6 +37,79 @@ Measured on 20 held-out fault scenarios replayed from recordings, with `qwen3:4b
 | Unapproved action attempts (all 31 runs) | 0 | — |
 | Median latency / tokens in / tokens out per incident | 125 s / 35,629 / 986 | — |
 <!-- END results -->
+
+Live on the cluster, the approved fix restored service in 3 of 5 incidents (168-194 s from
+symptom to verified recovery). Retrieval did not measurably change diagnosis accuracy at
+this sample size, and most misses are reasoning errors by the small model. Details,
+ablations, safety results and every miss classified: [evals/REPORT.md](evals/REPORT.md).
+
+## Why OpsPilot
+
+- **Grounded, not guessed.** A diagnosis must cite the tool output (`[E3]`) and runbook
+  chunks (`[R2]`) it rests on; uncited or contradicted answers are repaired once, then
+  escalated to a human.
+- **Safe by construction.** The agent's identity can only read. Writes go through a
+  separate server, only for allowlisted actions, only with a single-use token minted after
+  a human decision for that exact action.
+- **Measured.** 30 injected faults with known root causes, a held-out split, ablations and
+  Wilson intervals, rather than a few hand-picked demos.
+- **Small and local.** `qwen3:4b` through Ollama, Weaviate in Docker, k3d for the cluster:
+  no API keys and no cloud bill.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  A[Alertmanager webhook / CLI / console] --> G[LangGraph agent]
+  G -->|retrieve| R[(Weaviate / Chroma)]
+  G -->|read-only| K[MCP: opspilot-k8s] --> C[(k3d cluster)]
+  G -->|search| B[MCP: opspilot-kb] --> R
+  G -->|approved + token| X[MCP: opspilot-actions] --> C
+  H[Human approver] -->|approve / reject| G
+  G --> L[(Ollama: qwen3:4b)]
+```
+
+The API (FastAPI), the console (Streamlit) and the CLI share one service layer. More:
+[docs/architecture.md](docs/architecture.md), including the alert-to-resolution sequence.
+
+## How it works
+
+1. **Ingest** the alert (Alertmanager JSON, a simple JSON alert, or text) and scan it for
+   prompt injection.
+2. **Triage**: affected service, symptom, candidate categories and search queries.
+3. **Retrieve** runbooks, postmortems and Kubernetes docs: hybrid BM25 + vector search
+   with a cross-encoder reranker.
+4. **Investigate** with at most 8 read-only MCP tool calls, chosen one at a time; each
+   result becomes evidence `E1, E2, ...`.
+5. **Refine retrieval** with the failure signals the evidence names (an OOM kill, a
+   scheduling reason, a missing ConfigMap).
+6. **Diagnose**: one of 14 root-cause categories, the component, a cited summary and a
+   confidence; low confidence, `UNKNOWN` or a contradiction escalates to a human.
+7. **Propose** a fix the category allows, with a server-side dry-run diff, risk notes and
+   a rollback plan, or a manual change when no action fits.
+8. **Pause for approval** (LangGraph `interrupt()`, checkpointed in SQLite): approve,
+   reject or edit, from the console, the API or the CLI, in any process.
+9. **Execute** the approved action with a freshly minted single-use token, then **verify**
+   that the Deployment is healthy again.
+10. **Report**: a Markdown incident report with the timeline, evidence and follow-ups.
+
+## Safety model
+
+- **RBAC.** The agent reads through ServiceAccount `opspilot-reader` (get/list/watch, no
+  Secrets, no exec). Writes use a separate `opspilot-operator` identity, available only to
+  the actions server. Both are proven by integration tests.
+- **Allowlists.** Five actions (patch resources, set image, rollback, scale, restart),
+  each allowed only for matching root-cause categories, with server-side bounds; in live
+  mode the server dry-runs the change before a person is asked to approve it.
+- **Approval tokens.** An HMAC token bound to the action's hash, valid for 10 minutes and
+  usable once, minted only after an approve or edit decision. The model never sees it.
+- **Prompt injection.** Alerts, logs, events and documents are untrusted data, wrapped as
+  such in every prompt and scanned for instructions; the agent cannot execute anything a
+  planted instruction asks for, because execution needs the human decision. In the
+  evaluation, 0 of 2 planted injections were followed (the detector flagged one of them;
+  see Limitations).
+
+Details: [docs/security.md](docs/security.md).
 
 ## Quickstart
 
@@ -112,18 +132,74 @@ the cluster, deploys the demo app, injects the fault and sends its alert to the 
 `make app-up` runs the API and console as containers instead. `make help` lists every
 target, and [docs/](docs/) covers the rest (evaluation, recording fixtures, MCP servers).
 
-## Repository layout
+## Evaluation
+
+Each of the 30 scenarios injects one fault (two per category), waits for its symptom, and
+records every read-only tool output through the production tool code; the agent is then
+replayed against those recordings, so every number reproduces without a cluster. Ten
+scenarios are for development and twenty are held out. Ablations compare no retrieval
+(C0), hybrid search (C2) and hybrid search with reranking (C3, the default); a live subset
+of five scenarios runs end to end on the cluster with real approvals. A test fails if any
+scenario id or injected value appears in the agent's code or prompts. Method:
+[docs/evals.md](docs/evals.md) and [ADR-0012](docs/adr/0012-evaluation-methodology.md).
+Retrieval on its own was measured earlier on 60 graded queries:
+[evals/retrieval/RESULTS.md](evals/retrieval/RESULTS.md).
+
+## Repository tour
 
 ```
-src/opspilot/   package: config, logging, CLI, models, faults, rag, evals, mcp_servers, tools
-demo/           Shopfront demo service (app/) and kustomize manifests (k8s/)
-faults/         fault scenario definitions with ground-truth root causes
-knowledge/      runbooks, postmortems, service cards and Kubernetes docs
-evals/          retrieval queries and results, recorded MCP fixtures
-infra/          docker-compose (Weaviate, Phoenix), k3d cluster config, RBAC
-docs/           progress log and architecture decision records
-tests/          unit tests (no cluster) and integration tests (cluster)
+src/opspilot/
+  agent/          LangGraph nodes, state, guards, prompts loader, approval tokens
+  prompts/        versioned prompts (5-part structure)
+  mcp_servers/    opspilot-k8s (read-only), opspilot-kb, opspilot-actions (gated)
+  rag/            loaders, chunkers, embeddings, Weaviate/Chroma/Pinecone stores, retriever
+  evals/          scoring, replay runner, live subset, report generator
+  faults/         scenario schema, injector, recorder
+  api/  ui/       FastAPI webhook + approvals; Streamlit console
+  service.py      incident lifecycle shared by the API, console and CLI
+faults/scenarios/ 30 fault scenarios with ground truth
+knowledge/        22 runbooks, 10 postmortems, 4 service cards, 16 Kubernetes docs
+evals/            fixtures, results, REPORT.md, splits and failure analysis
+demo/             Shopfront demo service and its manifests
+infra/            docker-compose, k3d cluster, RBAC
+docs/             architecture, agent, RAG, MCP, security, evals, demo, ADRs, progress log
 ```
+
+## Design decisions
+
+| ADR | Decision |
+|---|---|
+| [0001](docs/adr/0001-local-first-zero-cost.md) | Local-first, zero-cost stack |
+| [0002](docs/adr/0002-read-only-by-default-agent-access.md) | Read-only by default agent access |
+| [0003](docs/adr/0003-fault-injection-as-ground-truth.md) | Fault injection as ground truth |
+| [0004](docs/adr/0004-retrieval-defaults.md) | Retrieval defaults |
+| [0005](docs/adr/0005-vector-store-abstraction.md) | Vector store abstraction |
+| [0006](docs/adr/0006-mcp-server-split.md) | Three MCP servers split by privilege |
+| [0007](docs/adr/0007-approval-tokens.md) | Single-use approval tokens for write actions |
+| [0008](docs/adr/0008-record-replay-evals.md) | Record/replay of tool calls for deterministic evals |
+| [0009](docs/adr/0009-state-machine-over-free-form-react.md) | A fixed state machine instead of a free-form ReAct agent |
+| [0010](docs/adr/0010-human-in-the-loop-approval.md) | Human-in-the-loop approval with interrupt() and checkpoints |
+| [0011](docs/adr/0011-small-model-strategies.md) | Strategies for running the agent on a 4B local model |
+| [0012](docs/adr/0012-evaluation-methodology.md) | Evaluation methodology for the agent |
+
+## Limitations and future work
+
+- **A small model reasons poorly under noise.** Most misses copy a story from a similar
+  postmortem instead of trusting the evidence; init-container and Service-level faults
+  are the weakest categories. A larger model is the obvious next experiment.
+- **Known gaps found on the test split, reported rather than fixed:** the injection
+  detector misses approval claims phrased as "pre-approved"; the reranker scores against
+  only the first query variant; log calls never name an init container. Fixing them means
+  rerunning the whole evaluation with disclosure.
+- **Synthetic, small evaluation.** 30 hand-written faults, one at a time, on one node;
+  n=20 gives intervals about 40 points wide; one run per case, so model variance is not
+  measured.
+- **Single-machine trust.** The approver's name is self-asserted; production would need
+  SSO, an approval service with audit retention, and multi-cluster credentials.
+- **Kubernetes only.** Real incidents also need metrics, traces and cloud APIs
+  (CloudWatch, AWS); those would be more read-only MCP tools behind the same guards.
+
+Progress log: [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## License
 
