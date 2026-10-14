@@ -12,7 +12,7 @@
 - `make demo`, `make demo-live SCENARIO=<id>`, `make app-up` (compose profile `app`,
   image `opspilot-app`), `opspilot faults alert`, `kb ingest --if-empty`.
 - Final README, `docs/architecture.md`, `docs/demo.md`, ADR index, link checker; CI split
-  into seven jobs including an image build; `make check` and an e2e test.
+  into six jobs including an image build; `make check` and an e2e test.
 - Private interview notes in `.local/` (not committed).
 
 **Decisions:**
