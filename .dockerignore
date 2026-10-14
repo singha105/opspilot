@@ -1,0 +1,16 @@
+.git
+.venv
+.secrets
+.local
+.env
+data
+runs
+**/__pycache__
+.mypy_cache
+.pytest_cache
+.ruff_cache
+demo
+infra
+tests
+docs
+scripts

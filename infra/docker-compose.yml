@@ -39,5 +39,40 @@ services:
     mem_limit: 512m
     restart: unless-stopped
 
+  # `docker compose --profile app up -d --build` (or `make app-up`): API and console in
+  # containers, replay mode. Ollama stays on the host.
+  api:
+    profiles: ["app"]
+    build: {context: .., dockerfile: Dockerfile}
+    image: opspilot-app:dev
+    command: ["opspilot-api"]
+    environment:
+      OPSPILOT_API_TOKEN: ${OPSPILOT_API_TOKEN:-}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ../runs:/app/runs
+      - ../data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      weaviate: {condition: service_healthy}
+    mem_limit: 1500m
+
+  ui:
+    profiles: ["app"]
+    image: opspilot-app:dev
+    command: ["streamlit", "run", "src/opspilot/ui/app.py", "--server.address=0.0.0.0"]
+    ports:
+      - "127.0.0.1:8501:8501"
+    volumes:
+      - ../runs:/app/runs
+      - ../data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      api: {condition: service_started}
+    mem_limit: 1500m
+
 volumes:
   weaviate_data:

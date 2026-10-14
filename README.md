@@ -93,42 +93,24 @@ Measured on 20 held-out fault scenarios replayed from recordings, with `qwen3:4b
 
 ## Quickstart
 
-Prerequisites: macOS or Linux, Docker (OrbStack or Docker Desktop), `k3d`, `kubectl`,
-`uv` and `make`.
+Prerequisites: macOS or Linux with 8 GB of RAM, Docker (OrbStack or Docker Desktop),
+[uv](https://docs.astral.sh/uv/), `make`, and [Ollama](https://ollama.com) running locally.
 
 ```bash
-make setup                       # uv sync + pre-commit hook
-make lint typecheck test         # unit tests need no cluster
-
-make cluster-up                  # single-node k3d cluster "opspilot"
-make demo-build demo-deploy      # build the demo image, deploy Shopfront to namespace shop
-make rbac-apply                  # reader/operator ServiceAccounts + kubeconfigs in .secrets/
-make test-integration            # RBAC proofs + every fault scenario end to end
-
-make fault-list
-make fault-inject ID=oom-payments
-make fault-status
-make fault-reset ID=oom-payments
-
-make infra-up                    # Weaviate (HTTP 8090, gRPC 50052)
-uv run opspilot kb ingest        # chunk, embed and index the knowledge base
-uv run opspilot kb search "payments pods restart with exit code 137"
-uv run opspilot eval retrieval --configs all
-
-uv run opspilot faults record --all            # record replay fixtures (cluster needed)
-uv run python scripts/mcp_smoke.py --mode replay --fixture evals/fixtures/oom-payments.json
-npx @modelcontextprotocol/inspector uv run opspilot-k8s
-
-ollama pull qwen3:4b             # local model (~2.5 GB)
-uv run opspilot investigate --scenario oom-payments --mode replay   # no cluster needed
-uv run opspilot investigate --scenario oom-payments --mode live     # pauses for approval
-uv run opspilot resume <incident-id>                                # approve / reject / edit
-uv run opspilot runs list
-
-make down-all                    # stop the cluster, containers and the Ollama model
+git clone https://github.com/singha105/opspilot.git && cd opspilot
+ollama pull qwen3:4b             # the local model, about 2.5 GB
+make demo                        # Weaviate + knowledge base + API + console, replay mode
 ```
 
-`make help` lists every target.
+Open http://localhost:8501, keep `oom-payments` selected, press **Investigate**, then approve
+or reject the proposed fix. Replay mode needs no cluster: the agent investigates recorded
+incidents. The first run downloads the embedding and reranking models (about 150 MB) and
+indexes the knowledge base. `make down-all` stops everything.
+
+The live version needs `k3d` and `kubectl` too: `make demo-live SCENARIO=oom-payments` creates
+the cluster, deploys the demo app, injects the fault and sends its alert to the API.
+`make app-up` runs the API and console as containers instead. `make help` lists every
+target, and [docs/](docs/) covers the rest (evaluation, recording fixtures, MCP servers).
 
 ## Repository layout
 

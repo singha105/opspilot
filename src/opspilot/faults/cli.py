@@ -60,6 +60,35 @@ def inject(
 
 
 @app.command()
+def alert(
+    scenario_id: Annotated[str, typer.Argument(help="Scenario id.")],
+) -> None:
+    """Print a scenario's alert as an Alertmanager webhook payload (for POST /alerts)."""
+    import json
+
+    scenario = _scenario(scenario_id)
+    a = scenario.alert
+    payload = {
+        "version": "4",
+        "status": "firing",
+        "receiver": "opspilot",
+        "alerts": [
+            {
+                "status": "firing",
+                "labels": {
+                    "alertname": a.name,
+                    "severity": a.severity,
+                    **a.labels,
+                    "opspilot_scenario": scenario.id,
+                },
+                "annotations": {"summary": a.summary, **a.annotations},
+            }
+        ],
+    }
+    typer.echo(json.dumps(payload))
+
+
+@app.command()
 def reset(scenario_id: Annotated[str, typer.Argument(help="Scenario id.")]) -> None:
     """Re-apply the base manifests and wait until the namespace is healthy."""
     scenario = _scenario(scenario_id)

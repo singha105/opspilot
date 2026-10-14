@@ -10,10 +10,13 @@ MODEL     ?= qwen3:4b
 COMPOSE   := docker compose -f infra/docker-compose.yml
 KUBECTL   := kubectl --context $(CTX)
 DEPLOYS   := redis payments-api orders-api inventory-api
+# make's own variables would reach the MCP server subprocesses, which warn about them.
+DEMO_ENV  := env -u MAKEFLAGS -u MAKEOVERRIDES -u MFLAGS -u MAKELEVEL
 
 .PHONY: help setup fmt lint typecheck test test-integration infra-up infra-down faults-verify \
 	cluster-up cluster-down demo-build demo-deploy demo-status rbac-apply kubeconfigs \
-	fault-list fault-inject fault-reset fault-status down-all mem
+	fault-list fault-inject fault-reset fault-status down-all mem demo demo-live secrets \
+	app-up app-down
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -103,9 +106,32 @@ fault-status: ## Show the health of the demo namespace
 
 ## ---- Housekeeping --------------------------------------------------------
 
+demo: ## One command: knowledge base + API + console in replay mode (no cluster needed)
+	@mkdir -p runs
+	$(DEMO_ENV) scripts/demo.sh replay
+
+demo-live: ## Live demo: cluster, demo app, fault SCENARIO=<id>, then API + console in live mode
+	@test -n "$(SCENARIO)" || { echo "usage: make demo-live SCENARIO=<scenario id>"; exit 2; }
+	@mkdir -p runs
+	$(MAKE) cluster-up demo-build demo-deploy rbac-apply secrets
+	uv run opspilot faults inject $(SCENARIO)
+	$(DEMO_ENV) scripts/demo.sh live $(SCENARIO)
+
+secrets: ## Create .secrets/.env with an approval-token secret if it has none
+	@mkdir -p .secrets && touch .secrets/.env && chmod 600 .secrets/.env
+	@grep -q '^OPSPILOT_APPROVAL_SECRET=.' .secrets/.env || \
+		echo "OPSPILOT_APPROVAL_SECRET=$$(openssl rand -hex 32)" >> .secrets/.env
+
+app-up: ## API + console as containers (compose profile "app", replay mode)
+	@mkdir -p runs data
+	$(COMPOSE) --profile app up -d --build
+
+app-down: ## Stop the API and console containers
+	-$(COMPOSE) --profile app stop api ui
+
 down-all: ## Stop the cluster, compose services and the Ollama model
 	-@if k3d cluster list $(CLUSTER) >/dev/null 2>&1; then k3d cluster stop $(CLUSTER); fi
-	-$(COMPOSE) --profile tracing down
+	-$(COMPOSE) --profile tracing --profile app down
 	-@ollama stop $(MODEL) 2>/dev/null || true
 
 mem: ## Memory used by containers and Ollama

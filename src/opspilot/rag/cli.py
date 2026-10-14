@@ -29,15 +29,38 @@ def _chunkers(choice: ChunkerChoice) -> list[ChunkerName]:
     return list(CHUNKERS) if choice == "all" else [choice]
 
 
+def _complete(store: StoreName, chunker: ChunkerName) -> bool:
+    """True when a collection holds exactly the chunks the knowledge base produces."""
+    settings = get_settings()
+    expected = len(chunk_documents(load_documents(settings.knowledge_dir), chunker))
+    try:
+        backend = get_store(store, chunker, settings=settings)
+        try:
+            return bool(backend.count() == expected)
+        finally:
+            close = getattr(backend, "close", None)
+            if callable(close):
+                close()
+    except Exception:  # missing collection or store not reachable yet: ingest
+        return False
+
+
 @app.command()
 def ingest(
     store: Annotated[StoreChoice, typer.Option(help="Target store.")] = "all",
     chunker: Annotated[ChunkerChoice, typer.Option(help="Chunking strategy.")] = "all",
+    if_empty: Annotated[
+        bool, typer.Option("--if-empty", help="Skip collections that are already complete.")
+    ] = False,
 ) -> None:
     """(Re)index the knowledge base. Idempotent: each collection is rebuilt from scratch."""
     from opspilot.rag.pipeline import ingest as run_ingest
 
-    reports = run_ingest(_stores(store), _chunkers(chunker))
+    stores, chunkers = _stores(store), _chunkers(chunker)
+    if if_empty and all(_complete(s, c) for s in stores for c in chunkers):
+        console.print("knowledge base already indexed; nothing to do")
+        return
+    reports = run_ingest(stores, chunkers)
     table = Table("store", "chunker", "documents", "chunks", "stored")
     for r in reports:
         table.add_row(r.store, r.chunker, str(r.documents), str(r.chunks), str(r.stored))

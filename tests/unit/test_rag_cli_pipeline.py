@@ -60,6 +60,13 @@ def test_ingest_search_and_stats_with_chroma(local_kb: Path) -> None:
     )
     assert again.exit_code == 0  # idempotent: same counts on re-run
 
+    skipped = runner.invoke(
+        app,
+        ["kb", "ingest", "--store", "chroma", "--chunker", "markdown_section", "--if-empty"],
+    )
+    assert skipped.exit_code == 0
+    assert "already indexed" in skipped.output
+
     search = runner.invoke(
         app,
         [

@@ -102,3 +102,15 @@ def test_verify_runs_each_scenario_and_reports_failures(
     ]
     assert "batch 2: redis-down" in result.output
     assert "1/2 scenarios verified" in result.output
+
+
+def test_alert_prints_an_alertmanager_payload() -> None:
+    import json
+
+    result = runner.invoke(app, ["faults", "alert", "oom-payments"])
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    labels = payload["alerts"][0]["labels"]
+    assert labels["alertname"] == "KubePodCrashLooping"
+    assert labels["opspilot_scenario"] == "oom-payments"  # stripped by the API before the agent
+    assert payload["alerts"][0]["annotations"]["summary"].startswith("payments-api pods")
