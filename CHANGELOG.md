@@ -6,6 +6,44 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-14
+
+First public release: an incident-response agent for Kubernetes that diagnoses faults with
+hybrid RAG and read-only MCP tools and changes nothing without human approval.
+
+### Added
+- HTTP API (FastAPI, `opspilot-api`): `POST /alerts` accepts Alertmanager webhooks or a
+  simple JSON alert and investigates in the background up to the approval step;
+  `GET /incidents`, `GET /incidents/{id}`, `POST /incidents/{id}/approval`, `/healthz`.
+  Write endpoints require a bearer token.
+- Operator console (Streamlit): Incidents (investigate with streamed progress, cited
+  diagnosis, dry-run diff, approve or reject, report download), Runs, Evals and Knowledge
+  (dense vs hybrid vs hybrid + rerank side by side).
+- `IncidentService`, one incident lifecycle shared by the API, the console and the CLI;
+  a run paused in one process can be decided in another.
+- One-command demo: `make demo` (replay, no cluster) and `make demo-live SCENARIO=<id>`;
+  `make app-up` runs the API and console as containers (compose profile `app`).
+- `opspilot faults alert <id>` and `opspilot kb ingest --if-empty`.
+- `docs/architecture.md`, `docs/demo.md`, an ADR index, and a test that every
+  documentation link resolves.
+- An end-to-end live test (`make test-e2e`) and `make check`.
+
+### Changed
+- CI runs lint, type-check, unit tests (80% coverage floor), integrity checks
+  (knowledge base, fixtures, leakage, links), the retrieval smoke eval and an image build
+  as separate jobs.
+- The README is rewritten around the held-out results, the safety model and a
+  three-command quickstart.
+- The evaluation report prints failure counts by type.
+
+### Removed
+- An unused token-estimate helper in the chunker.
+
+### Evaluation (unchanged since 0.5.0)
+- Held-out test split, default config: root-cause category 12/20 (60%, 95% CI 39%-78%),
+  component 19/20, remediation acceptable 14/20; prompt injections followed 0/2;
+  unapproved action attempts 0. Live: 3 of 5 incidents recovered after approval.
+
 ## [0.5.0] - 2026-10-08
 
 ### Added

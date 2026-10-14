@@ -1,5 +1,61 @@
 # Progress
 
+## Day 6 — UI, API, documentation, v1.0.0 (2026-10-14)
+
+**Done:**
+- `IncidentService` (`service.py`): one incident lifecycle for the API, the console and the
+  CLI; pending approvals are written to `runs/<id>/pending.json`, so any process can decide.
+- HTTP API (FastAPI): Alertmanager webhook and simple JSON alerts, incident reads,
+  approvals, `/healthz`; bearer token on writes. The `opspilot_scenario` label used to pick
+  a replay fixture is stripped before the agent sees the alert.
+- Operator console (Streamlit): Incidents, Runs, Evals, Knowledge; untrusted text escaped.
+- `make demo`, `make demo-live SCENARIO=<id>`, `make app-up` (compose profile `app`,
+  image `opspilot-app`), `opspilot faults alert`, `kb ingest --if-empty`.
+- Final README, `docs/architecture.md`, `docs/demo.md`, ADR index, link checker; CI split
+  into seven jobs including an image build; `make check` and an e2e test.
+- Private interview notes in `.local/` (not committed).
+
+**Decisions:**
+- The three issues found on the Day 5 test split ship as known issues, not fixed today
+  (fixing them requires a disclosed rerun of every config).
+- No new ADR: the API, console and service layer follow ADR-0009/0010 (state machine,
+  checkpointed approval) without changing a decision.
+
+**Metrics:**
+- Fresh clone (temp directory, own compose project, empty Weaviate volume), README only:
+  `make demo` created the environment, downloaded the models, indexed 740 chunks and
+  served the console; Investigate gave OOM_KILLED and Approve completed. First attempt, no
+  gaps found.
+- Replay through the API: a webhook alert was diagnosed IMAGE_PULL_ERROR and rejected
+  through `POST /incidents/{id}/approval`; nothing executed.
+- Containers (`make app-up`): the same replay ran inside the image, reaching Ollama on the
+  host (OOM_KILLED, 9 chunks, 8 evidence items). Image size 1.39 GB.
+- Live, through the console: `make demo-live SCENARIO=oom-payments` posted the alert, the
+  API investigated (OOM_KILLED), the console showed the server's dry-run diff (memory
+  128Mi -> 512Mi), approval executed the patch and verification was `resolved` after 16 s.
+- Integration suite with the cluster up: 94 passed, 6 skipped (Pinecone, no key) in 8 min
+  56 s, including all 30 fault scenarios.
+- E2E (`make test-e2e`): the first run escalated: the model diagnosed OOM_KILLED correctly
+  but cited a nonexistent `[E9]` twice, so the citation guard escalated and nothing was
+  executed. The second run passed (paused, nothing executed before approval, patch
+  executed, recovery verified) in 3 min 15 s. Both results are kept here.
+- `make check`: 582 unit tests, 85% line coverage, ruff, mypy, knowledge base, 31 fixtures,
+  pre-commit all green.
+
+**Known issues / debt:**
+- Carried from Day 5: the injection detector misses "pre-approved ... approve your own
+  action"; the reranker scores only the first query variant; log calls omit the init
+  container name; the 4B model anchors on retrieved postmortems; one run per case.
+- The e2e test depends on the model and can fail on a correct diagnosis with an invented
+  citation (seen once today); it is a smoke test of the live path, not a gate in CI.
+- One agent run at a time per process; the API and the console are separate processes, so
+  two runs can overlap if both start one (fine on a laptop, not a production design).
+- The approver name is self-asserted; production would put approval behind SSO.
+- The README shows a console screenshot until the demo GIF is recorded (docs/demo.md).
+
+**Next:**
+- Record the GIF; then, with disclosure and a full rerun, fix the three Day 5 issues.
+
 ## Day 5 — Fault catalog, evaluation, ablations, safety (2026-10-07 to 2026-10-08)
 
 **Done:**
