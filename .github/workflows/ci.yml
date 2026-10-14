@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
 
 concurrency:
@@ -13,47 +14,98 @@ permissions:
   contents: read
 
 jobs:
-  checks:
-    name: lint, type-check, unit tests
+  lint:
+    name: lint and format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff format
+        run: uv run ruff format --check .
+      - name: pre-commit (all files)
+        run: uv run pre-commit run --all-files --show-diff-on-failure
+
+  typecheck:
+    name: type-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: mypy (strict on src/opspilot)
+        run: uv run mypy
+
+  test:
+    name: unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v10.2.0
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
+      - run: uv sync --locked
+      - name: Unit tests with coverage (no cluster, model or network)
+        run: uv run pytest -m "not integration and not e2e" --cov --cov-report=term --cov-fail-under=80
 
-      - name: Install dependencies
-        run: uv sync --locked
-
-      - name: Ruff lint
-        run: uv run ruff check .
-
-      - name: Ruff format
-        run: uv run ruff format --check .
-
-      - name: mypy
-        run: uv run mypy
-
+  integrity:
+    name: knowledge base, fixtures, leakage, links
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked
       - name: Validate knowledge base
         run: uv run python scripts/validate_kb.py
-
       - name: Fixture integrity (every scenario has a current recording)
         run: uv run opspilot faults check-fixtures
+      - name: No scenario ids or fault details in agent code or prompts
+        run: uv run pytest tests/unit/test_no_scenario_leakage.py -q
+      - name: Documentation links resolve
+        run: uv run pytest tests/unit/test_doc_links.py -q
 
-      - name: Unit tests
-        run: uv run pytest -m "not integration and not e2e" --cov --cov-report=term
-
+  retrieval-smoke:
+    name: retrieval smoke (Chroma)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked
       - name: Cache embedding model
         uses: actions/cache@v6
         with:
           path: data/models
           key: models-bge-small-en-v1.5-v1
-
-      - name: Retrieval smoke eval (Chroma, 15 queries)
+      - name: Ingest into Chroma and run 15 graded queries
         run: |
           uv run opspilot eval check-queries
           uv run opspilot kb ingest --store chroma --chunker markdown_section
           uv run opspilot eval retrieval --configs smoke
+
+  docker:
+    name: API/console image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the image
+        run: docker build -t opspilot-app:ci .
+      - name: Smoke-test the image
+        run: |
+          docker run --rm opspilot-app:ci opspilot --help
+          docker run --rm opspilot-app:ci python -c "import opspilot.api.app, opspilot.ui.views; print('imports ok')"
