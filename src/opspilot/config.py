@@ -77,6 +77,14 @@ class Settings(BaseSettings):
     runs_dir: Path = Path("runs")
     fixtures_dir: Path = Path("evals/fixtures")
     approval_secret: SecretStr | None = None
+    # HTTP API: write endpoints need this bearer token; unset means writes are refused.
+    api_token: SecretStr | None = None
+    # replay: incidents run against recorded fixtures (an alert must name a scenario);
+    # live: against the cluster through the reader identity.
+    api_mode: Literal["replay", "live"] = "replay"
+    # Loopback by default; the container image sets 0.0.0.0.
+    api_host: str = "127.0.0.1"
+    api_port: int = 8000
 
     @property
     def chroma_dir(self) -> Path:

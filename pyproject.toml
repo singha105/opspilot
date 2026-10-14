@@ -10,6 +10,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "chromadb>=1.5.9",
+    "fastapi>=0.143.1",
     "fastembed>=0.8.1",
     "flashrank>=0.2.10",
     "httpx>=0.28.1",
@@ -26,11 +27,13 @@ dependencies = [
     "rich>=15.0.0",
     "structlog>=26.1.0",
     "typer>=0.27.2",
+    "uvicorn[standard]>=0.54.0",
     "weaviate-client>=4.23.1",
 ]
 
 [project.scripts]
 opspilot = "opspilot.cli:app"
+opspilot-api = "opspilot.api.app:main"
 opspilot-k8s = "opspilot.mcp_servers.k8s_readonly.__main__:main"
 opspilot-kb = "opspilot.mcp_servers.knowledge.__main__:main"
 opspilot-actions = "opspilot.mcp_servers.actions.__main__:main"

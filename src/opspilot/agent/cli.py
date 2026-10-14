@@ -1,12 +1,8 @@
 """``opspilot investigate``, ``opspilot runs list|show`` and ``opspilot resume``."""
 
 import asyncio
-import contextlib
 import json
-import os
 import sys
-import time
-from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
@@ -14,22 +10,26 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from opspilot.agent import graph as g
-from opspilot.agent.deps import AgentDeps, Budgets
-from opspilot.agent.observability import RunLog, list_runs, run_status, setup_tracing
+from opspilot.agent.observability import RunLog, setup_tracing
 from opspilot.agent.state import IncidentState
-from opspilot.agent.toolbox import MCPToolBox, ToolBox
 from opspilot.config import get_settings
 from opspilot.faults.scenario import load_scenarios
-from opspilot.llm import LLMFactory, LLMPool
+from opspilot.llm import LLMFactory
 from opspilot.models.incident import ApprovalDecision
+from opspilot.service import (
+    IncidentService,
+    IncidentView,
+    ServiceError,
+    ToolBoxFactory,
+    load_state,
+    mcp_toolbox,
+)
 
 console = Console()
 runs_app = typer.Typer(help="List and inspect agent runs.")
 
 Mode = Literal["replay", "live"]
 Decision = Literal["ask", "approve", "reject"]
-ToolBoxFactory = Callable[..., contextlib.AbstractAsyncContextManager[ToolBox]]
 
 
 class ConsoleEvents:
@@ -46,22 +46,6 @@ class ConsoleEvents:
             console.print(f"    · {data['tool']}({args})")
         elif kind == "tool_blocked":
             console.print(f"    [yellow]· blocked repeat: {data['tool']}[/yellow]")
-
-
-class FanOut:
-    def __init__(self, *sinks: Any) -> None:
-        self.sinks = sinks
-
-    def emit(self, kind: str, **data: Any) -> None:
-        for sink in self.sinks:
-            sink.emit(kind, **data)
-
-
-def mcp_toolbox(
-    mode: Mode, fixture: Path | None, run_id: str
-) -> contextlib.AbstractAsyncContextManager[ToolBox]:
-    """Production tools: MCP stdio sessions (actions included only for live runs)."""
-    return MCPToolBox(mode=mode, fixture=fixture, include_actions=mode == "live", run_id=run_id)
 
 
 # Injection points (tests use in-process servers and a scripted model).
@@ -124,67 +108,25 @@ def ask_decision(approver: str | None) -> ApprovalDecision:
     return ApprovalDecision(decision=decision, approver=who, reason=reason)
 
 
-@contextlib.asynccontextmanager
-async def session(
-    incident_id: str,
-    mode: Mode,
-    fixture: Path | None,
-    store: str | None,
-    use_rag: bool,
-    budget_from: float | None = None,
-) -> AsyncIterator[tuple[Any, AgentDeps, RunLog]]:
-    settings = get_settings()
-    if store:
-        os.environ["OPSPILOT_DEFAULT_STORE"] = store  # also seen by the kb server subprocess
-    run_log = RunLog(settings.runs_dir, incident_id)
-    async with (
-        toolbox_factory(mode, fixture, incident_id) as toolbox,
-        g.sqlite_checkpointer(settings.data_dir / "checkpoints.sqlite") as saver,
-    ):
-
-        def retriever() -> Any:
-            from opspilot.rag.pipeline import build_retriever
-
-            return build_retriever(store, rerank=settings.agent_rerank)  # type: ignore[arg-type]
-
-        pool = LLMPool(settings)
-        deps = AgentDeps(
-            toolbox=toolbox,
-            llm=llm_factory or pool,
-            retriever=retriever if use_rag else None,
-            settings=settings,
-            events=FanOut(run_log, ConsoleEvents()),
-            budgets=Budgets(),
-            actions=toolbox if mode == "live" else None,
-            report_dir=settings.runs_dir,
-            budget_from=budget_from,
-        )
-        try:
-            yield g.build_graph(deps, saver), deps, run_log
-        finally:
-            await pool.aclose()
+def service() -> IncidentService:
+    return IncidentService(toolbox_factory=toolbox_factory, llm_factory=llm_factory)
 
 
-async def _finish(
-    graph: Any,
-    incident_id: str,
-    run_log: RunLog,
-    decision: Decision,
-    approver: str | None,
-    interactive: bool,
+async def _settle(
+    svc: IncidentService, view: IncidentView, decision: Decision, approver: str | None
 ) -> IncidentState:
-    """After a pause: show the proposal, get a decision, resume. Returns the latest state."""
-    pending = await g.pending_approval(graph, incident_id)
-    state = await g.current_state(graph, incident_id)
-    assert state is not None
-    run_log.write_state(state, run_status(state, paused=pending is not None))
-    if pending is None:
+    """After a run: show the proposal if there is one, get a decision, resume."""
+    if view.pending is None:
+        state = load_state(view)
+        assert state is not None
         return state
-    show_proposal(pending)
-    if decision == "ask" and not interactive:
+    show_proposal(view.pending)
+    if decision == "ask" and not sys.stdin.isatty():
         console.print(
-            f"[yellow]Paused for approval.[/yellow] Resume with: opspilot resume {incident_id}"
+            f"[yellow]Paused for approval.[/yellow] Resume with: opspilot resume {view.incident_id}"
         )
+        state = load_state(view)
+        assert state is not None
         return state
     choice = (
         ask_decision(approver)
@@ -195,10 +137,8 @@ async def _finish(
             reason="decision given on the command line",
         )
     )
-    await g.resume(graph, incident_id, choice)
-    state = await g.current_state(graph, incident_id)
+    state = load_state(await svc.decide(view.incident_id, choice, [ConsoleEvents()]))
     assert state is not None
-    run_log.write_state(state, run_status(state, paused=False))
     return state
 
 
@@ -251,39 +191,24 @@ def investigate(
             "live runs need a decision made after seeing the proposal; use --decision ask"
         )
     alert, default_fixture = load_alert(scenario, alert_file)
-    fixture = fixture or default_fixture
-    if mode == "replay" and (fixture is None or not fixture.exists()):
-        raise typer.BadParameter("replay needs a recorded fixture (--fixture)")
     settings = get_settings()
     setup_tracing(settings)
-    incident_id = g.new_incident_id()
-    run_dir = settings.runs_dir / incident_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-    meta = {
-        "mode": mode,
-        "fixture": str(fixture) if mode == "replay" else None,
-        "store": store,
-        "use_rag": not no_rag,
-        "scenario": scenario,
-    }
-    (run_dir / "run.json").write_text(json.dumps(meta, indent=1) + "\n")
+    svc = service()
+    try:
+        incident_id = svc.create(
+            mode=mode,
+            scenario=scenario,
+            fixture=fixture or default_fixture,
+            store=store,
+            use_rag=not no_rag,
+        )
+    except ServiceError as exc:
+        raise typer.BadParameter(str(exc)) from exc
     console.print(f"Incident [bold]{incident_id}[/bold] ({mode})")
 
     async def go() -> IncidentState:
-        async with session(
-            incident_id, mode, fixture if mode == "replay" else None, store, not no_rag
-        ) as (
-            graph,
-            deps,
-            run_log,
-        ):
-            await asyncio.wait_for(
-                g.start(graph, incident_id, alert, mode=mode, use_rag=not no_rag),
-                deps.budgets.run_s + 60,
-            )
-            return await _finish(
-                graph, incident_id, run_log, decision, approver, sys.stdin.isatty()
-            )
+        view = await svc.run(incident_id, alert, [ConsoleEvents()])
+        return await _settle(svc, view, decision, approver)
 
     _print_outcome(asyncio.run(go()))
 
@@ -294,34 +219,19 @@ def resume(
     approver: Annotated[str | None, typer.Option(help="Name recorded with the decision.")] = None,
 ) -> None:
     """Resume a run paused for approval, from any process (state is checkpointed)."""
-    settings = get_settings()
-    meta_path = settings.runs_dir / incident_id / "run.json"
-    if not meta_path.exists():
-        raise typer.BadParameter(f"no run {incident_id}")
-    meta = json.loads(meta_path.read_text())
-    fixture = Path(meta["fixture"]) if meta.get("fixture") else None
-
-    async def go() -> IncidentState:
-        async with session(
-            incident_id,
-            meta["mode"],
-            fixture,
-            meta.get("store"),
-            meta["use_rag"],
-            budget_from=time.time(),
-        ) as (graph, _, run_log):
-            return await _finish(
-                graph, incident_id, run_log, decision, approver, sys.stdin.isatty()
-            )
-
-    _print_outcome(asyncio.run(go()))
+    svc = service()
+    try:
+        view = svc.get(incident_id)
+    except ServiceError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    _print_outcome(asyncio.run(_settle(svc, view, decision, approver)))
 
 
 @runs_app.command("list")
 def runs_list() -> None:
     """Every recorded run, newest first."""
     table = Table("incident", "status", "mode", "category", "conf", "action", "alert")
-    for r in list_runs(get_settings().runs_dir):
+    for r in service().list():
         conf = f"{r.confidence:.2f}" if r.confidence is not None else "-"
         table.add_row(
             r.incident_id, r.status, r.mode, r.category or "-", conf, r.action or "-", r.alert
