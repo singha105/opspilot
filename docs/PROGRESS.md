@@ -51,7 +51,8 @@
 - One agent run at a time per process; the API and the console are separate processes, so
   two runs can overlap if both start one (fine on a laptop, not a production design).
 - The approver name is self-asserted; production would put approval behind SSO.
-- The README shows a console screenshot until the demo GIF is recorded (docs/demo.md).
+- The README demo GIF is assembled from captioned console frames, not a screen recording
+  (screen capture is blocked on this machine); docs/demo.md says how to re-record it.
 
 **Next:**
 - Record the GIF; then, with disclosure and a full rerun, fix the three Day 5 issues.

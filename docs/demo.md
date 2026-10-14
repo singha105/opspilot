@@ -50,7 +50,10 @@ Afterwards: `uv run opspilot faults reset oom-payments` and `make down-all`.
 
 ## Recording the README GIF (60 seconds)
 
-The README shows a still screenshot (`docs/assets/console.png`) until this GIF exists.
+The current `docs/assets/demo.gif` was assembled from 16 console frames of a real replay
+run (Investigate, progress, evidence, diagnosis, proposal, approval, outcome, evals), each
+with a caption, because screen recording was not available on the machine that made it.
+To replace it with a screen recording:
 
 1. `make demo`, open http://localhost:8501 in a 1280x800 browser window, light theme,
    zoom 100%. Close other tabs and notifications.
@@ -67,5 +70,4 @@ The README shows a still screenshot (`docs/assets/console.png`) until this GIF e
    ffmpeg -i demo.mov -vf "fps=12,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" docs/assets/demo.gif
    ```
 
-6. In the README, replace the `docs/assets/console.png` image line with
-   `![OpsPilot demo](docs/assets/demo.gif)` and commit both.
+6. Commit the new `docs/assets/demo.gif`; the README already points at it.

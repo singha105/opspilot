@@ -8,8 +8,7 @@ read-only MCP tools, proposes a fix, and changes nothing until a person approves
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-![The OpsPilot console: a diagnosis with cited evidence and a proposed fix waiting for approval](docs/assets/console.png)
-<!-- Replace with docs/assets/demo.gif once recorded (script in docs/demo.md). -->
+![OpsPilot demo: an incident investigated with read-only tools, a cited diagnosis, and a fix that waits for human approval](docs/assets/demo.gif)
 
 An alert comes in ("payments-api pods are restarting repeatedly"). OpsPilot triages it,
 pulls the relevant runbooks and postmortems, investigates the cluster through 11 read-only
