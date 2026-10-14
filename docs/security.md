@@ -40,6 +40,24 @@ assuming the model behaves.
 - **The cluster CA certificate appears in fixtures** (the public `kube-root-ca.crt`
   ConfigMap). It is public information, not a secret.
 
+## API and console
+
+- **Writes need a bearer token.** `POST /alerts` and `POST /incidents/{id}/approval`
+  require `Authorization: Bearer $OPSPILOT_API_TOKEN`, compared in constant time; with no
+  token configured, every write is refused (503). `make demo` generates a fresh token per
+  session. Reads are open on the local machine.
+- **Local by default.** The API and the console bind to 127.0.0.1; only the container
+  image binds 0.0.0.0, and compose publishes it on 127.0.0.1. Streamlit usage statistics
+  are off.
+- **Untrusted text is never rendered as HTML.** Alert text, tool output, chunks and model
+  output are shown as code or escaped Markdown; the console adds links only for its own
+  `[E#]`/`[R#]` anchors.
+- **The replay scenario never reaches the agent.** In replay mode an alert names its
+  recorded scenario (`opspilot_scenario` label); the API strips the label before the
+  agent sees the alert, because a scenario id hints at the answer.
+- **An approval is only possible while a proposal is pending**, and the decision goes
+  through the same graph path as the CLI: the token is minted after the decision.
+
 ## Verification
 
 | control | evidence |
@@ -49,3 +67,5 @@ assuming the model behaves.
 | Redaction, cap, errors, audit | `tests/unit/test_mcp_common.py` |
 | Read-only catalog | `tests/unit/test_mcp_k8s.py::test_server_exposes_exactly_the_read_catalog` |
 | Tokens and bounds | `tests/unit/test_approval_and_actions.py`, `tests/integration/test_actions_live.py` |
+| API auth and approval flow | `tests/unit/test_api.py`, `tests/unit/test_service.py` |
+| Console escaping and approvals | `tests/unit/test_ui.py` |
