@@ -70,7 +70,8 @@ class StatusSink:
 
     def emit(self, kind: str, **data: Any) -> None:
         if kind == "node_start":
-            self.container.update(label=f"Running {data['node']}…")
+            # Keep the box open: updating only the label would collapse it.
+            self.container.update(label=f"Running {data['node']}…", expanded=True)
         elif kind == "node_end":
             extra = f" · {data['tool_calls']} tool calls" if data.get("tool_calls") else ""
             self.container.write(f"✓ `{data['node']}` {data['ms'] / 1000:.1f} s{extra}")
