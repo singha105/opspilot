@@ -1,0 +1,12 @@
+# Operator console defaults. The container image overrides the address with 0.0.0.0.
+[browser]
+gatherUsageStats = false
+
+[server]
+address = "127.0.0.1"
+port = 8501
+headless = true
+
+[theme]
+base = "light"
+primaryColor = "#2f6f9f"
